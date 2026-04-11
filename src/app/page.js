@@ -68,7 +68,7 @@ function calcHensa(scores) {
 
 async function scoreWithAI(session, answers) {
   const items = session.questions.map(q => ({ id: q.id, title: q.title, model: session.modelAnswers?.[q.id] || "", answer: answers[q.id] || "", len: (answers[q.id] || "").length }));
-  const prompt = `あなたは新卒研修テストの採点官です。以下の採点ルールに従って採点してください。
+  const prompt = `あなたは入社時研修テストの採点官です。以下の採点ルールに従って採点してください。
 
 【採点ルール】
 STEP1: まず回答が「的外れかどうか」を判定する
@@ -87,11 +87,11 @@ STEP2: 的外れでない場合は以下で採点
 
 ${items.map(i => `【${i.title}】文字数:${i.len}文字\n模範解答: ${i.model}\n受験者回答: ${i.answer || "(未記入)"}`).join("\n\n")}`;
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
+    const res = await fetch("/api/score", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session, answers }) });
     const data = await res.json();
-    const parsed = JSON.parse(data.content?.[0]?.text.replace(/```json|```/g, "").trim());
-    const r = {}; parsed.scores.forEach(s => { r[s.id] = { score: s.score, comment: s.comment, is_off_topic: s.is_off_topic }; }); return r;
-  } catch { const r = {}; items.forEach(i => { r[i.id] = { score: 7, comment: "採点エラー", is_off_topic: false }; }); return r; }
+    if (!data.success) throw new Error(data.error);
+    return data.scoring;
+  } catch { const r = {}; items.forEach(i => { r[i.id] = { score: 0, comment: "採点失敗・再提出を", is_off_topic: false, error: true }; }); return r; }
 }
 
 async function saveGAS(u, sid, ans, sc, ts) { try { await fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ userName: u, sessionId: sid, answers: ans, scoring: sc, submittedAt: ts }) }); } catch {} }
@@ -154,7 +154,7 @@ function LoginPage({ cfg, onStart, onAdmin, updateCfg }) {
       <div style={{ width: "100%", maxWidth: 400 }} className="fade">
         <div style={S.lb}>
           <div style={S.ls}>ビジョン税理士法人</div>
-          <div style={S.lm}>新卒研修テスト</div>
+          <div style={S.lm}>入社時研修テスト</div>
           <div style={S.ld}>回答・採点・ランキング</div>
         </div>
 
@@ -199,7 +199,7 @@ function SessionList({ user, data, cfg, onSelect, onBack, onShowRanking }) {
   return (
     <div style={S.pw} className="fade">
       <div style={S.hdr}>
-        <div><div style={S.hs}>新卒研修テスト</div><div style={{ fontSize: 16, fontWeight: 700 }}>{user} さん</div></div>
+        <div><div style={S.hs}>入社時研修テスト</div><div style={{ fontSize: 16, fontWeight: 700 }}>{user} さん</div></div>
         <button style={S.btnSG} onClick={onBack}>ログアウト</button>
       </div>
       <button style={{ ...S.btnO, marginBottom: 16 }} onClick={onShowRanking}>🏆 みんなの順位・点数を見る</button>

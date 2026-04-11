@@ -115,6 +115,8 @@ function initAll() {
 
 export default function App() {
   const [page, setPage] = useState("login");
+  const [prevPage, setPrevPage] = useState("sessions");
+  const goRanking = (from) => { setPrevPage(from); setPage("ranking"); };
   const [user, setUser] = useState("");
   const [data, setData] = useState({});
   const [cfg, setCfg] = useState({ members: [], sessions: [] });
@@ -126,11 +128,11 @@ export default function App() {
     <div style={{ background: "#F5F3EF", minHeight: "100vh" }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}} .fade{animation:fadeIn .2s ease} *{box-sizing:border-box}`}</style>
       {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={() => setPage("admin")} updateCfg={updateCfg} />}
-      {page === "sessions" && <SessionList user={user} data={data} cfg={cfg} onSelect={s => { setSelSession(s); setPage("quiz"); }} onBack={() => setPage("login")} />}
+      {page === "sessions" && <SessionList user={user} data={data} cfg={cfg} onSelect={s => { setSelSession(s); setPage("quiz"); }} onBack={() => setPage("login")} onShowRanking={() => goRanking("sessions")} />}
       {page === "quiz" && selSession && <QuizPage user={user} session={selSession} data={data} onDone={async rec => { const d = dbLoad(); if (!d[user]) d[user] = {}; d[user][selSession.id] = rec; updateData(d); await saveGAS(user, selSession.id, rec.answers, rec.scoring, rec.submittedAt); setPage("done"); }} />}
       {page === "done" && <DonePage user={user} session={selSession} data={data} onBack={() => setPage("sessions")} />}
-      {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => setPage("ranking")} />}
-      {page === "ranking" && <RankingPage data={data} cfg={cfg} onBack={() => setPage("admin")} />}
+      {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => goRanking("admin")} />}
+      {page === "ranking" && <RankingPage data={data} cfg={cfg} onBack={() => setPage(prevPage || "sessions")} />}
     </div>
   );
 }
@@ -192,9 +194,35 @@ function LoginPage({ cfg, onStart, onAdmin, updateCfg }) {
   );
 }
 
-function SessionList({ user, data, cfg, onSelect, onBack }) {
+function SessionList({ user, data, cfg, onSelect, onBack, onShowRanking }) {
   const ud = data[user] || {};
-  return <div style={S.pw} className="fade"><div style={S.hdr}><div><div style={S.hs}>新卒研修テスト</div><div style={{ fontSize: 16, fontWeight: 700 }}>{user} さん</div></div><button style={S.btnSG} onClick={onBack}>ログアウト</button></div><p style={{ fontSize: 13, color: "#999", marginBottom: 16 }}>受けるテストを選んでください</p>{(cfg.sessions || []).map(s => { const done = ud[s.id]; const sc = done?.scoring; const tot = sc ? Object.values(sc).reduce((a, v) => a + (v.score || 0), 0) : null; const max = s.totalScore || s.questions.length * 10; return <div key={s.id} style={S.sc} onClick={() => onSelect(s)}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><span style={{ background: "#E8590C", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>テスト</span><div style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E" }}>{s.title}</div></div><div style={{ fontSize: 12, color: "#999" }}>{s.date}　｜　{s.questions.length}問　満点{max}点</div></div>{done ? <span style={{ ...S.tagG, fontSize: 13 }}>{tot !== null ? `${tot}/${max}点` : "提出済"}</span> : <span style={S.tagO}>未回答</span>}</div></div>; })}</div>;
+  return (
+    <div style={S.pw} className="fade">
+      <div style={S.hdr}>
+        <div><div style={S.hs}>新卒研修テスト</div><div style={{ fontSize: 16, fontWeight: 700 }}>{user} さん</div></div>
+        <button style={S.btnSG} onClick={onBack}>ログアウト</button>
+      </div>
+      <button style={{ ...S.btnO, marginBottom: 16 }} onClick={onShowRanking}>🏆 みんなの順位・点数を見る</button>
+      <p style={{ fontSize: 13, color: "#999", marginBottom: 12 }}>受けるテストを選んでください</p>
+      {(cfg.sessions || []).map(s => {
+        const done = ud[s.id]; const sc = done?.scoring;
+        const tot = sc ? Object.values(sc).reduce((a, v) => a + (v.score || 0), 0) : null;
+        const max = s.totalScore || s.questions.length * 10;
+        return <div key={s.id} style={S.sc} onClick={() => onSelect(s)}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ background: "#E8590C", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>テスト</span>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E" }}>{s.title}</div>
+              </div>
+              <div style={{ fontSize: 12, color: "#999" }}>{s.date}　｜　{s.questions.length}問　満点{max}点</div>
+            </div>
+            {done ? <span style={{ ...S.tagG, fontSize: 13 }}>{tot !== null ? `${tot}/${max}点` : "提出済"}</span> : <span style={S.tagO}>未回答</span>}
+          </div>
+        </div>;
+      })}
+    </div>
+  );
 }
 
 function QuizPage({ user, session, data, onDone }) {

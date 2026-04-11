@@ -1,5 +1,4 @@
 export const runtime = "edge";
-export const maxDuration = 60;
 
 export async function POST(request) {
   try {
@@ -7,7 +6,7 @@ export async function POST(request) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
     if (!apiKey) {
-      return Response.json({ success: false, error: "API key not configured" }, { status: 500 });
+      return Response.json({ success: false, error: "APIキーが設定されていません" }, { status: 500 });
     }
 
     const items = session.questions.map((q) => ({
@@ -18,23 +17,9 @@ export async function POST(request) {
       len: (answers[q.id] || "").length,
     }));
 
-    const prompt = `あなたは入社時研修テストの採点官です。以下の採点ルールに従って採点してください。
+    const prompt = `入社時研修テストの採点をしてください。採点基準：的外れ→0-3点、内容点0-7点＋文字量ボーナス（100文字+1点、200文字+2点、300文字+3点）最大10点。JSON形式のみ返答：{"scores":[{"id":"ID","score":点数,"comment":"20字以内","is_off_topic":false}]}\n\n${items.map((i) => `【${i.title}】${i.len}文字\n模範:${i.model}\n回答:${i.answer || "(未記入)"}`).join("\n\n")}`;
 
-【採点ルール】
-STEP1: まず回答が「的外れかどうか」を判定する
-- 的外れ = 模範解答と全く関係ない内容、または意味不明な回答
-- 的外れの場合 → 0〜3点
-
-STEP2: 的外れでない場合は以下で採点
-- 内容点（0〜7点）: 模範解答の要点をどれだけ含んでいるか
-- 文字量ボーナス（0〜3点）: 300文字以上+3点 / 200文字以上+2点 / 100文字以上+1点
-- 合計 = 内容点 + 文字量ボーナス（最大10点）
-
-必ずJSON形式のみで返答（他テキスト不要）：{"scores":[{"id":"問いID","score":点数,"comment":"20字以内","is_off_topic":true/false}]}
-
-${items.map((i) => `【${i.title}】文字数:${i.len}文字\n模範解答: ${i.model}\n受験者回答: ${i.answer || "(未記入)"}`).join("\n\n")}`;
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -43,26 +28,28 @@ ${items.map((i) => `【${i.title}】文字数:${i.len}文字\n模範解答: ${i.
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 1200,
+        max_tokens: 800,
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
-    if (!response.ok) {
-      const err = await response.text();
-      return Response.json({ success: false, error: err }, { status: 500 });
+    const text = await res.text();
+
+    if (!res.ok) {
+      return Response.json({ success: false, error: `API Error ${res.status}: ${text}` }, { status: 500 });
     }
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text || "";
-    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+    const data = JSON.parse(text);
+    const content = data.content?.[0]?.text || "";
+    const clean = content.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean);
     const result = {};
     parsed.scores.forEach((s) => {
-      result[s.id] = { score: s.score, comment: s.comment, is_off_topic: s.is_off_topic };
+      result[s.id] = { score: s.score, comment: s.comment, is_off_topic: s.is_off_topic || false };
     });
 
     return Response.json({ success: true, scoring: result });
-  } catch (error) {
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+  } catch (err) {
+    return Response.json({ success: false, error: String(err) }, { status: 500 });
   }
 }

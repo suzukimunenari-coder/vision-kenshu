@@ -94,9 +94,26 @@ function cfgLoad() { try { return JSON.parse(localStorage.getItem(SKEY + "_cfg")
 function cfgSave(c) { try { localStorage.setItem(SKEY + "_cfg", JSON.stringify(c)); } catch {} }
 
 function initAll() {
-  const d = dbLoad(); const cfg = cfgLoad();
+  const d = dbLoad();
+  const cfg = cfgLoad();
   if (!cfg.members) cfg.members = [...DEFAULT_MEMBERS];
-  if (!cfg.sessions) cfg.sessions = DEFAULT_SESSIONS.map(s => ({ ...s }));
+
+  // 常にDEFAULT_SESSIONSをベースにscoringModeを確実に引き継ぐ
+  cfg.sessions = DEFAULT_SESSIONS.map(ds => {
+    const existing = (cfg.sessions || []).find(s => s.id === ds.id);
+    if (!existing) return { ...ds };
+    return {
+      ...existing,
+      modelAnswers: ds.modelAnswers,
+      questions: ds.questions.map(dq => ({ ...dq, scoringMode: dq.scoringMode }))
+    };
+  });
+
+  // カスタムテストを追加（DEFAULT_SESSIONSにないもの）
+  const defaultIds = DEFAULT_SESSIONS.map(s => s.id);
+  const customSessions = (cfgLoad().sessions || []).filter(s => !defaultIds.includes(s.id));
+  cfg.sessions = [...cfg.sessions, ...customSessions];
+
   let changed = false;
   DEFAULT_MEMBERS.forEach(name => {
     if (!d[name]) d[name] = {};

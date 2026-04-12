@@ -58,14 +58,13 @@ export async function POST(request) {
 【重要】
 - 採点は必ず加点思考で行う
 - 迷ったら高い点数を選ぶ
-- 表現が多少違っても意味が合っていれば満点に近い点数を与える
 - 的外れでない限り5点以下にしない
 
-【出力形式】JSONのみ。前後に説明文・コードブロック不要。
-{"scores":[{"id":"問いID","score":9,"comment":"40字以内の具体的なフィードバック","is_off_topic":false}]}
+【出力形式】JSONのみ。前後に説明文・コードブロック不要。idは必ず元のIDをそのまま使うこと。
+{"scores":[{"id":"q1_kodo","score":9,"comment":"40字以内のフィードバック","is_off_topic":false}]}
 
 【採点対象】
-${items.map((i) => `【${i.title}】採点モード:${i.mode}　${i.len}文字\n模範解答:${i.model}\n受験者回答:${i.answer || "(未記入)"}`).join("\n\n")}`;
+${items.map((i) => `ID:${i.id} 【${i.title}】採点モード:${i.mode}　${i.len}文字\n模範解答:${i.model}\n受験者回答:${i.answer || "(未記入)"}`).join("\n\n")}`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

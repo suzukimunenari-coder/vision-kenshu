@@ -122,14 +122,12 @@ function LoginPage({ cfg, onStart, onAdmin, updateCfg }) {
   const [sel, setSel] = useState("");
   const [showInput, setShowInput] = useState(false);
   const [newName, setNewName] = useState("");
-
   const addAndStart = () => {
     if (!newName.trim()) return;
     const updated = [...(cfg.members || []), newName.trim()];
     updateCfg({ ...cfg, members: updated });
     onStart(newName.trim());
   };
-
   return (
     <div style={S.cw}>
       <div style={{ width: "100%", maxWidth: 400 }} className="fade">
@@ -138,7 +136,6 @@ function LoginPage({ cfg, onStart, onAdmin, updateCfg }) {
           <div style={S.lm}>入社時研修テスト</div>
           <div style={S.ld}>回答・採点・ランキング</div>
         </div>
-
         {!showInput ? (
           <div style={S.card}>
             <label style={S.label}>名前を選んでください</label>
@@ -157,18 +154,11 @@ function LoginPage({ cfg, onStart, onAdmin, updateCfg }) {
           <div style={S.card}>
             <label style={S.label}>名前を入力してください</label>
             <p style={{ fontSize: 12, color: "#999", marginBottom: 10 }}>入力した名前はリストに追加されます</p>
-            <input
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              placeholder="例：山田太郎"
-              style={S.input}
-              onKeyDown={e => e.key === "Enter" && newName.trim() && addAndStart()}
-            />
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="例：山田太郎" style={S.input} onKeyDown={e => e.key === "Enter" && newName.trim() && addAndStart()} />
             <button style={{ ...S.btnO, opacity: newName.trim() ? 1 : 0.5, marginTop: 12 }} onClick={addAndStart}>追加して始める</button>
             <button style={{ ...S.btnG, marginTop: 8 }} onClick={() => { setShowInput(false); setNewName(""); }}>← 選択に戻る</button>
           </div>
         )}
-
         <button onClick={onAdmin} style={S.al}>管理者画面</button>
       </div>
     </div>
@@ -214,7 +204,7 @@ function QuizPage({ user, session, data, onDone }) {
   const cc = (answers[q.id] || "").length;
   const submit = async () => { setSub(true); let sc = null; if (session.modelAnswers) { setMsg("AIが採点中... しばらくお待ちください"); sc = await scoreWithAI(session, answers); } else setMsg("提出中..."); onDone({ answers: { ...answers }, submittedAt: new Date().toISOString(), scoring: sc }); };
   if (sub) return <div style={{ ...S.cw, flexDirection: "column" }}><div style={S.spin} /><p style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E", marginTop: 16 }}>{msg}</p><p style={{ fontSize: 12, color: "#999", marginTop: 8 }}>10〜20秒かかります</p></div>;
-  return <div style={S.pw} className="fade"><div style={{ ...S.hdr, marginBottom: 8 }}><div><div style={S.hs}>{session.title}</div><div style={{ fontSize: 12, color: "#aaa" }}>{user} さん</div></div><div style={{ fontSize: 13, color: "#E8590C", fontWeight: 700 }}>{filled}/{total} 記入</div></div><div style={{ display: "flex", gap: 4, marginBottom: 16 }}>{session.questions.map((_, i) => <div key={i} onClick={() => setCur(i)} style={{ flex: 1, height: 4, borderRadius: 2, cursor: "pointer", background: i === cur ? "#E8590C" : answers[session.questions[i].id]?.trim() ? "#2E7D32" : "#ddd" }} />)}</div><div style={S.card}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}><span style={S.qt}>問{cur + 1}/{total}</span><span style={{ fontSize: 12, color: "#999" }}>{q.title}</span></div><p style={S.qtext}>{q.question}</p><textarea value={answers[q.id] || ""} onChange={e => setAnswers(p => ({ ...p, [q.id]: e.target.value }))} placeholder="自分の言葉で書いてください" style={S.ta} /><div style={{ textAlign: "right", fontSize: 11, color: "#999", marginTop: 4 }}>{cc}文字</div></div><div style={{ display: "flex", gap: 8, marginTop: 12 }}>{cur > 0 && <button style={{ ...S.btnG, flex: 1 }} onClick={() => setCur(cur - 1)}>← 前</button>}{cur < total - 1 ? <button style={{ ...S.btnD, flex: 1 }} onClick={() => setCur(cur + 1)}>次 →</button> : <button style={{ ...S.btnO, flex: 1 }} onClick={submit}>提出して採点 ✓</button>}</div></div>;
+  return <div style={S.pw} className="fade"><div style={{ ...S.hdr, marginBottom: 8 }}><div><div style={S.hs}>{session.title}</div><div style={{ fontSize: 12, color: "#aaa" }}>{user} さん</div></div><div style={{ fontSize: 13, color: "#E8590C", fontWeight: 700 }}>{filled}/{total} 記入</div></div><div style={{ display: "flex", gap: 4, marginBottom: 16 }}>{session.questions.map((_, i) => <div key={i} onClick={() => setCur(i)} style={{ flex: 1, height: 4, borderRadius: 2, cursor: "pointer", background: i === cur ? "#E8590C" : answers[session.questions[i].id]?.trim() ? "#2E7D32" : "#ddd" }} />)}</div><div style={S.card}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}><span style={S.qt}>問{cur + 1}/{total}</span><span style={{ fontSize: 12, color: "#999" }}>{q.title}</span></div><p style={S.qtext}>{q.question}</p><textarea value={answers[q.id] || ""} onChange={e => setAnswers(p => ({ ...p, [q.id]: e.target.value }))} placeholder="" style={S.ta} /><div style={{ textAlign: "right", fontSize: 11, color: "#999", marginTop: 4 }}>{cc}文字</div></div><div style={{ display: "flex", gap: 8, marginTop: 12 }}>{cur > 0 && <button style={{ ...S.btnG, flex: 1 }} onClick={() => setCur(cur - 1)}>← 前</button>}{cur < total - 1 ? <button style={{ ...S.btnD, flex: 1 }} onClick={() => setCur(cur + 1)}>次 →</button> : <button style={{ ...S.btnO, flex: 1 }} onClick={submit}>提出して採点 ✓</button>}</div></div>;
 }
 
 function DonePage({ user, session, data, onBack }) {
@@ -265,11 +255,8 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
   return <div style={S.pw} className="fade">
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}><h2 style={{ fontSize: 18, fontWeight: 700, color: "#1A1A2E" }}>管理者画面</h2><div style={{ display: "flex", gap: 6 }}><button style={S.btnSO} onClick={onShowRanking}>🏆 順位</button><button style={S.btnSG} onClick={onBack}>戻る</button></div></div>
     <div style={{ display: "flex", borderBottom: "2px solid #eee", marginBottom: 16 }}>{[["results", "回答確認"], ["members", "メンバー管理"], ["tests", "テスト管理"]].map(([k, v]) => <div key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "10px 0", textAlign: "center", fontSize: 13, fontWeight: 700, cursor: "pointer", color: tab === k ? "#E8590C" : "#999", borderBottom: tab === k ? "3px solid #E8590C" : "3px solid transparent" }}>{v}</div>)}</div>
-
     {tab === "results" && <><div style={{ display: "flex", gap: 4, marginBottom: 12, overflowX: "auto" }}>{(cfg.sessions || []).map(s => <button key={s.id} onClick={() => setSelSId(s.id)} style={{ ...S.btnSG, whiteSpace: "nowrap", ...(selSId === s.id ? { background: "#E8590C", color: "#fff" } : {}) }}>{s.date}</button>)}</div><div style={{ ...S.card, display: "flex", justifyContent: "space-around", textAlign: "center", marginBottom: 8 }}><div><div style={{ fontSize: 28, fontWeight: 700, color: "#1A1A2E" }}>{entries.length}</div><div style={S.sub}>提出数</div></div><div><div style={{ fontSize: 28, fontWeight: 700, color: "#E8590C" }}>{(cfg.members || []).length}</div><div style={S.sub}>受験者数</div></div><div><div style={{ fontSize: 28, fontWeight: 700, color: "#2E7D32" }}>{entries.filter(([_, v]) => v[selSId]?.scoring).length}</div><div style={S.sub}>採点済</div></div></div>{entries.length === 0 && <div style={{ ...S.card, textAlign: "center" }}><p style={S.sub}>まだ回答がありません</p></div>}{entries.map(([name, v]) => { const rec = v[selSId]; const sc = rec?.scoring; const tot = sc ? Object.values(sc).reduce((a, v) => a + (v.score || 0), 0) : null; return { name, rec, tot }; }).sort((a, b) => (b.tot || 0) - (a.tot || 0)).map(({ name, rec, tot }, i) => <div key={name} style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }} onClick={() => setDetail(name)}><div><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 18, width: 28 }}>{["🥇", "🥈", "🥉"][i] || ""}</span><div style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E" }}>{name}</div></div><div style={{ fontSize: 11, color: "#999" }}>{new Date(rec.submittedAt).toLocaleString("ja-JP")}</div></div><div style={{ display: "flex", alignItems: "center", gap: 8 }}>{tot !== null ? <span style={{ fontSize: 18, fontWeight: 700, color: "#E8590C" }}>{tot}/{max}</span> : <span style={{ ...S.tagO, fontSize: 11 }}>未採点</span>}<span style={{ fontSize: 18, color: "#ccc" }}>›</span></div></div>)}</>}
-
     {tab === "members" && <><div style={S.card}><label style={S.label}>新しい名前を追加</label><div style={{ display: "flex", gap: 8 }}><input value={newName} onChange={e => setNewName(e.target.value)} placeholder="例：山田太郎" style={{ ...S.input, flex: 1 }} onKeyDown={e => e.key === "Enter" && addMember()} /><button style={S.btnSO} onClick={addMember}>追加</button></div></div><div style={{ fontSize: 13, color: "#999", marginBottom: 8 }}>{(cfg.members || []).length}名登録中</div>{(cfg.members || []).map(name => <div key={name} style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px" }}><span style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E" }}>{name}</span><button onClick={() => remMember(name)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button></div>)}</>}
-
     {tab === "tests" && <><button style={{ ...S.btnO, marginBottom: 16 }} onClick={() => setShowAdd(!showAdd)}>{showAdd ? "▾ 入力フォームを閉じる" : "＋ 新しいテストを作成"}</button>{showAdd && <div style={{ ...S.card, borderLeft: "4px solid #E8590C" }}><label style={S.label}>テストタイトル</label><input value={tf.title} onChange={e => setTf(f => ({ ...f, title: e.target.value }))} placeholder="例：テスト③ 月次決算" style={{ ...S.input, marginBottom: 12 }} /><label style={S.label}>実施日</label><input value={tf.date} onChange={e => setTf(f => ({ ...f, date: e.target.value }))} placeholder="例：2026/4/20" style={{ ...S.input, marginBottom: 12 }} /><div style={{ fontSize: 13, fontWeight: 700, color: "#1A1A2E", margin: "8px 0" }}>問題（{tf.questions.length}問）</div>{tf.questions.map((q, i) => <div key={i} style={{ ...S.card, background: "#F9F7F4", marginBottom: 8 }}><div style={{ fontSize: 12, color: "#E8590C", fontWeight: 700, marginBottom: 8 }}>問{i + 1}</div><input value={q.title} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, title: e.target.value } : qq) }))} placeholder="問いのタイトル" style={{ ...S.input, marginBottom: 8, fontSize: 14 }} /><textarea value={q.question} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, question: e.target.value } : qq) }))} placeholder="問題文" style={{ ...S.ta, minHeight: 60, marginBottom: 8 }} /><textarea value={q.model} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, model: e.target.value } : qq) }))} placeholder="模範解答（採点の基準になります）" style={{ ...S.ta, minHeight: 60, background: "#FEF3EC" }} />{i > 0 && <button onClick={() => setTf(f => ({ ...f, questions: f.questions.filter((_, j) => j !== i) }))} style={{ background: "none", border: "none", color: "#c00", fontSize: 12, cursor: "pointer", marginTop: 8 }}>この問いを削除</button>}</div>)}<button onClick={() => setTf(f => ({ ...f, questions: [...f.questions, { title: "", question: "", model: "", maxScore: 10 }] }))} style={{ ...S.btnG, marginBottom: 12 }}>＋ 問いを追加</button><button onClick={addTest} style={S.btnO}>テストを作成して保存</button></div>}<div style={{ fontSize: 13, color: "#999", marginBottom: 8, marginTop: 8 }}>登録済みテスト {(cfg.sessions || []).length}件</div>{(cfg.sessions || []).map(s => <div key={s.id} style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center" }}><div><div style={{ fontSize: 14, fontWeight: 700, color: "#1A1A2E" }}>{s.title}</div><div style={{ fontSize: 12, color: "#999" }}>{s.date} ｜ {s.questions.length}問 ｜ 満点{s.totalScore}点</div></div>{s.id !== "test_0409" && s.id !== "test_0413" && <button onClick={() => remTest(s.id)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button>}</div>)}</>}
   </div>;
 }

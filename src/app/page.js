@@ -46,7 +46,13 @@ const DEFAULT_SESSIONS = [{
   ]
 },{
   id:"test_0413",title:"テスト② 行動指針・良樹細根・成果の三原則",date:"2026/4/13",totalScore:50,
-  modelAnswers:{q1_kodo:"お客様第一主義、素直と謙虚さ、良樹細根、熱意、人間として何が正しいか、原理・原則を守る、正直な仕事をする、時間を大切にする、成長、プラス発想、毎日0.1％成長する、一人の100歩より百人の1歩",q2_ryoju:"細かく根が張っている木は枝葉もよく茂り立派な木になるという言葉。良い成果は日頃の行い・心・基礎など見えない部分から生まれる。",q3_ne:"感謝・挨拶・清掃・環境整備・素直・人格・人間力・誠実・誠意・熱意・笑顔・規律・勤勉・親孝行・礼儀・謙虚・報連相・約束を守る・読書・仲間（20個中10個）",q4_stage1:"インプット中心・仕事がわかる喜び。勉強の習慣を身につける。会計・税務・労務の知識習得。掃除・挨拶を実践する。",q5_seika:"①スピード（即応性）②文字量（熱量と論理）③愚直に実践（試行回数と量）"},
+  modelAnswers:{
+    q1_kodo:"お客様第一主義、素直と謙虚さ、良樹細根、熱意、人間として何が正しいか、原理・原則を守る、正直な仕事をする、時間を大切にする、成長、プラス発想、毎日0.1％成長する、一人の100歩より百人の1歩",
+    q2_ryoju:"「良樹細根（りょうじゅさいこん）」とは、良い果実（成果）を得るには、見えない根（人間性や基礎）を育てる必要があるという教え。細かく根が張っている木は枝葉もよく茂り立派な木になる。良い成果は日頃の行い・心・基礎など見えない部分から生まれる。経営や教育の場で、目に見える結果よりも地道な努力や基礎固めの重要性を説く際に使われる。",
+    q3_ne:"感謝・挨拶・清掃・環境整備・素直・人格・人間力・誠実・誠意・熱意・笑顔・規律・勤勉・親孝行・礼儀・謙虚・報連相・約束を守る・読書・仲間（20個中10個）",
+    q4_stage1:"インプット中心・仕事がわかる喜び。勉強の習慣を身につける。会計・税務・労務の知識習得。掃除・挨拶を実践する。",
+    q5_seika:"①スピード（即応性）②文字量（熱量と論理）③愚直に実践（試行回数と量）"
+  },
   questions:[
     {id:"q1_kodo",title:"問1：行動指針12個",question:"行動指針を全て（12個）答えてください。",maxScore:10,scoringMode:"暗記型"},
     {id:"q2_ryoju",title:"問2：良樹細根とは",question:"「良樹細根」とは何ですか？\n自分の言葉で説明してください。",maxScore:10,scoringMode:"理解型（文字量あり）"},
@@ -111,7 +117,7 @@ export default function App() {
   const [data, setData] = useState({});
   const [cfg, setCfg] = useState({ members: [], sessions: [] });
   const [selSession, setSelSession] = useState(null);
-  const [lastRec, setLastRec] = useState(null); // 追加：最新の採点結果を保持
+  const [lastRec, setLastRec] = useState(null);
   useEffect(() => { const { data: d, cfg: c } = initAll(); setData(d); setCfg(c); }, []);
   const updateCfg = c => { cfgSave(c); setCfg({ ...c }); };
   const updateData = d => { dbSave(d); setData({ ...d }); };
@@ -131,7 +137,7 @@ export default function App() {
         await saveGAS(user, selSession.id, rec.answers, rec.scoring, rec.submittedAt);
         setPage("done");
       }} />}
-      {page === "done" && selSession && <DonePage user={user} session={selSession} rec={lastRec} onBack={() => { setPage("sessions"); }} />}
+      {page === "done" && selSession && <DonePage user={user} session={selSession} rec={lastRec} onBack={() => setPage("sessions")} />}
       {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => goRanking("admin")} />}
       {page === "ranking" && <RankingPage data={data} cfg={cfg} onBack={() => setPage(prevPage || "sessions")} />}
     </div>
@@ -257,7 +263,6 @@ function QuizPage({ user, session, data, onDone }) {
   </div>;
 }
 
-// DonePageはrecを直接受け取る（stateのタイミング問題を回避）
 function DonePage({ user, session, rec, onBack }) {
   if (!rec) return null;
   const scoring = rec.scoring || {};

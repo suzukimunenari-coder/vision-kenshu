@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, createElement as h } from "react";
+import { useState, useEffect } from "react";
 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxOOhjOqe9GfdX9DfUdcLpBW6apPM7eyrP8_bWXGWUmwkQ6G1fzPWzHmnR6BDwHBNGFSQ/exec";
 const SKEY = "vt_v6";
@@ -72,7 +72,12 @@ async function scoreWithAI(session, answers) {
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.scoring;
-  } catch { const r = {}; session.questions.forEach(q => { r[q.id] = { score: 0, comment: "採点失敗・再提出を", is_off_topic: false, error: true }; }); return r; }
+  } catch(e) {
+    console.error("採点エラー:", e);
+    const r = {};
+    session.questions.forEach(q => { r[q.id] = { score: 0, comment: "採点失敗・再提出を", is_off_topic: false }; });
+    return r;
+  }
 }
 
 async function saveGAS(u, sid, ans, sc, ts) { try { await fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ userName: u, sessionId: sid, answers: ans, scoring: sc, submittedAt: ts }) }); } catch {} }
@@ -89,9 +94,14 @@ function initAll() {
   let changed = false;
   DEFAULT_MEMBERS.forEach(name => {
     if (!d[name]) d[name] = {};
-    if (!d[name]["test_0409"] && SEED_0409.scoring[name]) { d[name]["test_0409"] = { answers: SEED_0409.answers[name], scoring: SEED_0409.scoring[name], submittedAt: "2026-04-09T01:10:00Z" }; changed = true; }
+    if (!d[name]["test_0409"] && SEED_0409.scoring[name]) {
+      d[name]["test_0409"] = { answers: SEED_0409.answers[name], scoring: SEED_0409.scoring[name], submittedAt: "2026-04-09T01:10:00Z" };
+      changed = true;
+    }
   });
-  if (changed) dbSave(d); cfgSave(cfg); return { data: d, cfg };
+  if (changed) dbSave(d);
+  cfgSave(cfg);
+  return { data: d, cfg };
 }
 
 export default function App() {
@@ -110,7 +120,15 @@ export default function App() {
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}} .fade{animation:fadeIn .2s ease} *{box-sizing:border-box}`}</style>
       {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={() => setPage("admin")} updateCfg={updateCfg} />}
       {page === "sessions" && <SessionList user={user} data={data} cfg={cfg} onSelect={s => { setSelSession(s); setPage("quiz"); }} onBack={() => setPage("login")} onShowRanking={() => goRanking("sessions")} />}
-      {page === "quiz" && selSession && <QuizPage user={user} session={selSession} data={data} onDone={async rec => { const d = dbLoad(); if (!d[user]) d[user] = {}; d[user][selSession.id] = rec; updateData(d); await saveGAS(user, selSession.id, rec.answers, rec.scoring, rec.submittedAt); setPage("done"); }} />}
+      {page === "quiz" && selSession && <QuizPage user={user} session={selSession} data={data} onDone={async rec => {
+        console.log("提出データ:", rec);
+        const d = dbLoad();
+        if (!d[user]) d[user] = {};
+        d[user][selSession.id] = rec;
+        updateData(d);
+        await saveGAS(user, selSession.id, rec.answers, rec.scoring, rec.submittedAt);
+        setPage("done");
+      }} />}
       {page === "done" && <DonePage user={user} session={selSession} data={data} onBack={() => setPage("sessions")} />}
       {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => goRanking("admin")} />}
       {page === "ranking" && <RankingPage data={data} cfg={cfg} onBack={() => setPage(prevPage || "sessions")} />}
@@ -198,11 +216,29 @@ function SessionList({ user, data, cfg, onSelect, onBack, onShowRanking }) {
 
 function QuizPage({ user, session, data, onDone }) {
   const ex = data[user]?.[session.id];
-  const [answers, setAnswers] = useState(() => { if (ex?.answers) return { ...ex.answers }; const i = {}; session.questions.forEach(q => { i[q.id] = ""; }); return i; });
-  const [cur, setCur] = useState(0); const [sub, setSub] = useState(false); const [msg, setMsg] = useState("");
-  const q = session.questions[cur]; const total = session.questions.length; const filled = Object.values(answers).filter(v => v?.trim()).length;
+  const [answers, setAnswers] = useState(() => {
+    if (ex?.answers) return { ...ex.answers };
+    const i = {}; session.questions.forEach(q => { i[q.id] = ""; }); return i;
+  });
+  const [cur, setCur] = useState(0);
+  const [sub, setSub] = useState(false);
+  const [msg, setMsg] = useState("");
+  const q = session.questions[cur];
+  const total = session.questions.length;
+  const filled = Object.values(answers).filter(v => v?.trim()).length;
   const cc = (answers[q.id] || "").length;
-  const submit = async () => { setSub(true); let sc = null; if (session.modelAnswers) { setMsg("AIが採点中... しばらくお待ちください"); sc = await scoreWithAI(session, answers); } else setMsg("提出中..."); onDone({ answers: { ...answers }, submittedAt: new Date().toISOString(), scoring: sc }); };
+  const submit = async () => {
+    setSub(true);
+    let sc = null;
+    if (session.modelAnswers) {
+      setMsg("AIが採点中... しばらくお待ちください");
+      sc = await scoreWithAI(session, answers);
+      console.log("採点結果:", sc);
+    } else {
+      setMsg("提出中...");
+    }
+    onDone({ answers: { ...answers }, submittedAt: new Date().toISOString(), scoring: sc });
+  };
   if (sub) return <div style={{ ...S.cw, flexDirection: "column" }}><div style={S.spin} /><p style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E", marginTop: 16 }}>{msg}</p><p style={{ fontSize: 12, color: "#999", marginTop: 8 }}>10〜20秒かかります</p></div>;
   return <div style={S.pw} className="fade">
     <div style={{ ...S.hdr, marginBottom: 8 }}><div><div style={S.hs}>{session.title}</div><div style={{ fontSize: 12, color: "#aaa" }}>{user} さん</div></div><div style={{ fontSize: 13, color: "#E8590C", fontWeight: 700 }}>{filled}/{total} 記入</div></div>
@@ -221,25 +257,118 @@ function QuizPage({ user, session, data, onDone }) {
 }
 
 function DonePage({ user, session, data, onBack }) {
-  const rec = data[user]?.[session.id]; if (!rec) return null;
-  const scoring = rec.scoring; const total = scoring ? Object.values(scoring).reduce((a, v) => a + (v.score || 0), 0) : null; const max = session.totalScore || session.questions.length * 10;
-  return <div style={S.pw} className="fade"><div style={{ textAlign: "center", marginBottom: 20 }}>{total !== null ? <><div style={{ fontSize: 56, marginBottom: 8 }}>{total >= max * 0.8 ? "🏆" : total >= max * 0.6 ? "✅" : "📝"}</div><h2 style={{ fontSize: 22, color: "#1A1A2E", marginBottom: 4 }}>{user} さんの得点</h2><div style={{ fontSize: 48, fontWeight: 700, color: "#E8590C", margin: "8px 0" }}>{total}</div><div style={{ fontSize: 16, color: "#999" }}>/ {max} 点</div></> : <><div style={{ fontSize: 56, marginBottom: 8 }}>✅</div><h2 style={{ fontSize: 20, color: "#1A1A2E" }}>{user} さん、提出完了！</h2></>}</div>{session.questions.map(q => { const val = rec.answers?.[q.id]; const model = session.modelAnswers?.[q.id]; const sc = scoring?.[q.id]; const cl = (val || "").length; const bp = sc && !sc.is_off_topic && q.scoringMode === "理解型（文字量あり）" ? (cl >= 150 ? 3 : cl >= 100 ? 2 : cl >= 50 ? 1 : 0) : 0; return <div key={q.id} style={S.card}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E" }}>{q.title}</div>{sc && <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 18, fontWeight: 700, color: sc.score >= 8 ? "#2E7D32" : sc.score >= 5 ? "#E8590C" : "#c00" }}>{sc.score}</span><span style={{ fontSize: 12, color: "#999" }}>/ {q.maxScore}</span></div>}</div>{sc && <div style={{ display: "flex", gap: 6, marginBottom: 6, fontSize: 11, flexWrap: "wrap" }}>{sc.is_off_topic && <span style={{ background: "#c00", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>的外れ</span>}{!sc.is_off_topic && bp > 0 && <span style={{ background: "#2E7D32", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>文字量ボーナス +{bp}点</span>}{sc.comment && <span style={{ color: "#666" }}>💬 {sc.comment}</span>}</div>}<div style={S.ab}>{val || "(未記入)"}</div>{val && <div style={{ textAlign: "right", fontSize: 11, color: "#999", marginTop: 4 }}>{cl}文字</div>}{model && <div style={{ marginTop: 8 }}><div style={{ fontSize: 11, color: "#E8590C", fontWeight: 700, marginBottom: 4 }}>模範解答</div><div style={{ ...S.ab, background: "#FEF3EC", fontSize: 12 }}>{model}</div></div>}</div>; })}<button style={S.btnG} onClick={onBack}>テスト一覧に戻る</button></div>;
+  const rec = data[user]?.[session.id];
+  if (!rec) return null;
+  const scoring = rec.scoring || {};
+  const hasScoring = Object.keys(scoring).length > 0;
+  const total = hasScoring ? Object.values(scoring).reduce((a, v) => a + (v?.score || 0), 0) : null;
+  const max = session.totalScore || session.questions.length * 10;
+  console.log("DonePage rec:", rec);
+  console.log("DonePage scoring:", scoring);
+  return <div style={S.pw} className="fade">
+    <div style={{ textAlign: "center", marginBottom: 20 }}>
+      {total !== null ? <>
+        <div style={{ fontSize: 56, marginBottom: 8 }}>{total >= max * 0.8 ? "🏆" : total >= max * 0.6 ? "✅" : "📝"}</div>
+        <h2 style={{ fontSize: 22, color: "#1A1A2E", marginBottom: 4 }}>{user} さんの得点</h2>
+        <div style={{ fontSize: 48, fontWeight: 700, color: "#E8590C", margin: "8px 0" }}>{total}</div>
+        <div style={{ fontSize: 16, color: "#999" }}>/ {max} 点</div>
+      </> : <>
+        <div style={{ fontSize: 56, marginBottom: 8 }}>✅</div>
+        <h2 style={{ fontSize: 20, color: "#1A1A2E" }}>{user} さん、提出完了！</h2>
+      </>}
+    </div>
+    {session.questions.map(q => {
+      const val = rec.answers?.[q.id];
+      const model = session.modelAnswers?.[q.id];
+      const sc = scoring[q.id];
+      const cl = (val || "").length;
+      const bp = sc && !sc.is_off_topic && q.scoringMode === "理解型（文字量あり）" ? (cl >= 150 ? 3 : cl >= 100 ? 2 : cl >= 50 ? 1 : 0) : 0;
+      return <div key={q.id} style={S.card}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E" }}>{q.title}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {sc != null
+              ? <span style={{ fontSize: 18, fontWeight: 700, color: sc.score >= 8 ? "#2E7D32" : sc.score >= 5 ? "#E8590C" : "#c00" }}>{sc.score}</span>
+              : <span style={{ fontSize: 14, color: "#ccc" }}>-</span>
+            }
+            <span style={{ fontSize: 12, color: "#999" }}>/ {q.maxScore}</span>
+          </div>
+        </div>
+        {sc && <div style={{ display: "flex", gap: 6, marginBottom: 6, fontSize: 11, flexWrap: "wrap" }}>
+          {sc.is_off_topic && <span style={{ background: "#c00", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>的外れ</span>}
+          {!sc.is_off_topic && bp > 0 && <span style={{ background: "#2E7D32", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>文字量ボーナス +{bp}点</span>}
+          {sc.comment && <span style={{ color: "#666" }}>💬 {sc.comment}</span>}
+        </div>}
+        <div style={S.ab}>{val || "(未記入)"}</div>
+        {val && <div style={{ textAlign: "right", fontSize: 11, color: "#999", marginTop: 4 }}>{cl}文字</div>}
+        {model && <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 11, color: "#E8590C", fontWeight: 700, marginBottom: 4 }}>模範解答</div>
+          <div style={{ ...S.ab, background: "#FEF3EC", fontSize: 12 }}>{model}</div>
+        </div>}
+      </div>;
+    })}
+    <button style={S.btnG} onClick={onBack}>テスト一覧に戻る</button>
+  </div>;
 }
 
 function RankingPage({ data, cfg, onBack }) {
   const [selSId, setSelSId] = useState((cfg.sessions || [])[0]?.id);
-  const session = (cfg.sessions || []).find(s => s.id === selSId); const max = session?.totalScore || (session?.questions.length || 0) * 10;
-  const ranked = (cfg.members || []).map(name => { const rec = data[name]?.[selSId]; if (!rec) return { name, total: null, submitted: false }; const sc = rec.scoring; const tot = sc ? Object.values(sc).reduce((a, v) => a + (v.score || 0), 0) : null; return { name, total: tot, submitted: !!rec.submittedAt }; }).filter(r => r.submitted).sort((a, b) => (b.total || 0) - (a.total || 0));
+  const session = (cfg.sessions || []).find(s => s.id === selSId);
+  const max = session?.totalScore || (session?.questions.length || 0) * 10;
+  const ranked = (cfg.members || []).map(name => {
+    const rec = data[name]?.[selSId];
+    if (!rec) return { name, total: null, submitted: false };
+    const sc = rec.scoring;
+    const tot = sc ? Object.values(sc).reduce((a, v) => a + (v?.score || 0), 0) : null;
+    return { name, total: tot, submitted: !!rec.submittedAt };
+  }).filter(r => r.submitted).sort((a, b) => (b.total || 0) - (a.total || 0));
   const sm = {}; ranked.forEach(r => { if (r.total !== null) sm[r.name] = r.total; });
   const hm = calcHensa(sm) || {};
-  const avg = ranked.filter(r => r.total !== null).length > 0 ? Math.round(ranked.filter(r => r.total !== null).reduce((a, r) => a + r.total, 0) / ranked.filter(r => r.total !== null).length) : null;
-  return <div style={S.pw} className="fade"><button style={{ ...S.btnSG, marginBottom: 12 }} onClick={onBack}>← 戻る</button><div style={{ ...S.lb, marginBottom: 12, borderRadius: 12 }}><div style={S.ls}>得点ランキング</div><div style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>🏆 {session?.title}</div><div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>満点 {max}点</div></div><div style={{ display: "flex", gap: 4, marginBottom: 16, overflowX: "auto" }}>{(cfg.sessions || []).map(s => <button key={s.id} onClick={() => setSelSId(s.id)} style={{ ...S.btnSG, whiteSpace: "nowrap", ...(selSId === s.id ? { background: "#E8590C", color: "#fff" } : {}) }}>{s.date}</button>)}</div>{ranked.length === 0 && <div style={{ ...S.card, textAlign: "center" }}><p style={S.sub}>採点済みデータがありません</p></div>}{ranked.map((r, i) => <div key={r.name} style={{ ...S.card, borderLeft: i === 0 ? "4px solid #FFD700" : i === 1 ? "4px solid #C0C0C0" : i === 2 ? "4px solid #CD7F32" : "4px solid #eee" }}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ fontSize: 24, width: 32, textAlign: "center" }}>{["🥇", "🥈", "🥉"][i] || String(i + 1)}</div><div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E" }}>{r.name}</div><div style={{ marginTop: 6, background: "#eee", borderRadius: 4, height: 8, overflow: "hidden" }}><div style={{ width: `${r.total !== null ? Math.round(r.total / max * 100) : 0}%`, height: "100%", background: i === 0 ? "#E8590C" : "#1A1A2E", borderRadius: 4 }} /></div></div><div style={{ textAlign: "right" }}>{r.total !== null ? <span style={{ fontSize: 22, fontWeight: 700, color: "#E8590C" }}>{r.total}</span> : <span style={{ fontSize: 14, color: "#ccc" }}>未採点</span>}<div style={{ fontSize: 11, color: "#999" }}>/{max}点</div>{hm[r.name] != null && <div style={{ fontSize: 12, fontWeight: 700, color: "#666", marginTop: 2 }}>偏差値 {hm[r.name]}</div>}</div></div></div>)}{avg !== null && <div style={{ ...S.card, textAlign: "center", marginTop: 8 }}><div style={{ fontSize: 12, color: "#999", marginBottom: 4 }}>クラス平均</div><div style={{ fontSize: 28, fontWeight: 700, color: "#1A1A2E" }}>{avg}</div><div style={{ fontSize: 12, color: "#999" }}>/ {max} 点</div></div>}</div>;
+  const avg = ranked.filter(r => r.total !== null).length > 0
+    ? Math.round(ranked.filter(r => r.total !== null).reduce((a, r) => a + r.total, 0) / ranked.filter(r => r.total !== null).length)
+    : null;
+  return <div style={S.pw} className="fade">
+    <button style={{ ...S.btnSG, marginBottom: 12 }} onClick={onBack}>← 戻る</button>
+    <div style={{ ...S.lb, marginBottom: 12, borderRadius: 12 }}>
+      <div style={S.ls}>得点ランキング</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>🏆 {session?.title}</div>
+      <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>満点 {max}点</div>
+    </div>
+    <div style={{ display: "flex", gap: 4, marginBottom: 16, overflowX: "auto" }}>
+      {(cfg.sessions || []).map(s => <button key={s.id} onClick={() => setSelSId(s.id)} style={{ ...S.btnSG, whiteSpace: "nowrap", ...(selSId === s.id ? { background: "#E8590C", color: "#fff" } : {}) }}>{s.date}</button>)}
+    </div>
+    {ranked.length === 0 && <div style={{ ...S.card, textAlign: "center" }}><p style={S.sub}>採点済みデータがありません</p></div>}
+    {ranked.map((r, i) => <div key={r.name} style={{ ...S.card, borderLeft: i === 0 ? "4px solid #FFD700" : i === 1 ? "4px solid #C0C0C0" : i === 2 ? "4px solid #CD7F32" : "4px solid #eee" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ fontSize: 24, width: 32, textAlign: "center" }}>{["🥇", "🥈", "🥉"][i] || String(i + 1)}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E" }}>{r.name}</div>
+          <div style={{ marginTop: 6, background: "#eee", borderRadius: 4, height: 8, overflow: "hidden" }}>
+            <div style={{ width: `${r.total !== null ? Math.round(r.total / max * 100) : 0}%`, height: "100%", background: i === 0 ? "#E8590C" : "#1A1A2E", borderRadius: 4 }} />
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          {r.total !== null ? <span style={{ fontSize: 22, fontWeight: 700, color: "#E8590C" }}>{r.total}</span> : <span style={{ fontSize: 14, color: "#ccc" }}>未採点</span>}
+          <div style={{ fontSize: 11, color: "#999" }}>/{max}点</div>
+          {hm[r.name] != null && <div style={{ fontSize: 12, fontWeight: 700, color: "#666", marginTop: 2 }}>偏差値 {hm[r.name]}</div>}
+        </div>
+      </div>
+    </div>)}
+    {avg !== null && <div style={{ ...S.card, textAlign: "center", marginTop: 8 }}>
+      <div style={{ fontSize: 12, color: "#999", marginBottom: 4 }}>クラス平均</div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: "#1A1A2E" }}>{avg}</div>
+      <div style={{ fontSize: 12, color: "#999" }}>/ {max} 点</div>
+    </div>}
+  </div>;
 }
 
 function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) {
-  const [tab, setTab] = useState("results"); const [selSId, setSelSId] = useState((cfg.sessions || [])[0]?.id);
-  const [detail, setDetail] = useState(null); const [delConf, setDelConf] = useState(null);
-  const [newName, setNewName] = useState(""); const [showAdd, setShowAdd] = useState(false);
+  const [tab, setTab] = useState("results");
+  const [selSId, setSelSId] = useState((cfg.sessions || [])[0]?.id);
+  const [detail, setDetail] = useState(null);
+  const [delConf, setDelConf] = useState(null);
+  const [newName, setNewName] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
   const [tf, setTf] = useState({ title: "", date: "", questions: [{ title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量あり）" }] });
   const session = (cfg.sessions || []).find(s => s.id === selSId);
   const entries = Object.entries(data).filter(([_, v]) => v[selSId]?.submittedAt);
@@ -253,27 +382,154 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
     const qs = tf.questions.map((q, i) => { const qid = "q" + i + "_" + id; ma[qid] = q.model; return { id: qid, title: q.title, question: q.question, maxScore: q.maxScore || 10, scoringMode: q.scoringMode || "理解型（文字量あり）" }; });
     const ts = qs.reduce((a, q) => a + (q.maxScore || 10), 0);
     updateCfg({ ...cfg, sessions: [...(cfg.sessions || []), { id, title: tf.title, date: tf.date, totalScore: ts, modelAnswers: ma, questions: qs }] });
-    setTf({ title: "", date: "", questions: [{ title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量あり）" }] }); setShowAdd(false); setSelSId(id);
+    setTf({ title: "", date: "", questions: [{ title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量あり）" }] });
+    setShowAdd(false); setSelSId(id);
   };
   const remTest = sid => { const c = { ...cfg, sessions: (cfg.sessions || []).filter(s => s.id !== sid) }; updateCfg(c); if (selSId === sid && c.sessions.length > 0) setSelSId(c.sessions[0].id); };
 
-  if (delConf) return <div style={S.cw}><div style={{ ...S.card, maxWidth: 340, width: "100%" }}><p style={{ fontSize: 16, fontWeight: 700, color: "#1A1A2E", marginBottom: 8 }}>回答を削除しますか？</p><p style={{ ...S.sub, marginBottom: 16 }}>{delConf.name}さんの回答を削除します。</p><button style={{ ...S.btnO, marginBottom: 8 }} onClick={() => delAnswer(delConf.name, selSId)}>削除する</button><button style={S.btnG} onClick={() => setDelConf(null)}>キャンセル</button></div></div>;
+  if (delConf) return <div style={S.cw}><div style={{ ...S.card, maxWidth: 340, width: "100%" }}>
+    <p style={{ fontSize: 16, fontWeight: 700, color: "#1A1A2E", marginBottom: 8 }}>回答を削除しますか？</p>
+    <p style={{ ...S.sub, marginBottom: 16 }}>{delConf.name}さんの回答を削除します。</p>
+    <button style={{ ...S.btnO, marginBottom: 8 }} onClick={() => delAnswer(delConf.name, selSId)}>削除する</button>
+    <button style={S.btnG} onClick={() => setDelConf(null)}>キャンセル</button>
+  </div></div>;
 
   if (detail) {
-    const rec = data[detail]?.[selSId]; if (!rec) { setDetail(null); return null; }
-    const scoring = rec.scoring; const ts = scoring ? Object.values(scoring).reduce((a, v) => a + (v.score || 0), 0) : null;
-    return <div style={S.pw} className="fade"><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}><button style={S.btnSG} onClick={() => setDetail(null)}>← 戻る</button><button style={{ ...S.btnSG, color: "#c00" }} onClick={() => setDelConf({ name: detail })}>🗑 削除</button></div><h2 style={{ fontSize: 18, fontWeight: 700, color: "#1A1A2E", marginBottom: 4 }}>{detail}</h2>{ts !== null && <div style={{ ...S.card, display: "flex", justifyContent: "center", alignItems: "baseline", gap: 8, marginBottom: 4 }}><span style={{ fontSize: 36, fontWeight: 700, color: "#E8590C" }}>{ts}</span><span style={{ fontSize: 16, color: "#999" }}>/ {max} 点</span></div>}{session?.questions.map(q => { const sc = scoring?.[q.id]; const val = rec.answers?.[q.id]; const cl = (val || "").length; const bp = sc && !sc.is_off_topic && q.scoringMode === "理解型（文字量あり）" ? (cl >= 150 ? 3 : cl >= 100 ? 2 : cl >= 50 ? 1 : 0) : 0; return <div key={q.id} style={S.card}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E" }}>{q.title}</div>{sc && <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 18, fontWeight: 700, color: sc.score >= 8 ? "#2E7D32" : sc.score >= 5 ? "#E8590C" : "#c00" }}>{sc.score}</span><span style={{ fontSize: 11, color: "#999" }}>/{q.maxScore}</span></div>}</div>{sc && <div style={{ display: "flex", gap: 6, marginBottom: 6, fontSize: 11, flexWrap: "wrap" }}>{sc.is_off_topic && <span style={{ background: "#c00", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>的外れ</span>}{!sc.is_off_topic && bp > 0 && <span style={{ background: "#2E7D32", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>文字量ボーナス +{bp}点</span>}{sc.comment && <span style={{ color: "#666" }}>💬 {sc.comment}</span>}</div>}<div style={S.ab}>{val || "(未記入)"}</div>{val && <div style={{ textAlign: "right", fontSize: 11, color: "#999", marginTop: 4 }}>{cl}文字</div>}{session.modelAnswers?.[q.id] && <div style={{ marginTop: 8 }}><div style={{ fontSize: 11, color: "#E8590C", fontWeight: 700, marginBottom: 4 }}>模範解答</div><div style={{ ...S.ab, background: "#FEF3EC", fontSize: 12 }}>{session.modelAnswers[q.id]}</div></div>}</div>; })}</div>;
+    const rec = data[detail]?.[selSId];
+    if (!rec) { setDetail(null); return null; }
+    const scoring = rec.scoring || {};
+    const ts = Object.keys(scoring).length > 0 ? Object.values(scoring).reduce((a, v) => a + (v?.score || 0), 0) : null;
+    return <div style={S.pw} className="fade">
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+        <button style={S.btnSG} onClick={() => setDetail(null)}>← 戻る</button>
+        <button style={{ ...S.btnSG, color: "#c00" }} onClick={() => setDelConf({ name: detail })}>🗑 削除</button>
+      </div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1A1A2E", marginBottom: 4 }}>{detail}</h2>
+      {ts !== null && <div style={{ ...S.card, display: "flex", justifyContent: "center", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 36, fontWeight: 700, color: "#E8590C" }}>{ts}</span>
+        <span style={{ fontSize: 16, color: "#999" }}>/ {max} 点</span>
+      </div>}
+      {session?.questions.map(q => {
+        const sc = scoring[q.id];
+        const val = rec.answers?.[q.id];
+        const cl = (val || "").length;
+        const bp = sc && !sc.is_off_topic && q.scoringMode === "理解型（文字量あり）" ? (cl >= 150 ? 3 : cl >= 100 ? 2 : cl >= 50 ? 1 : 0) : 0;
+        return <div key={q.id} style={S.card}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E" }}>{q.title}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {sc != null
+                ? <span style={{ fontSize: 18, fontWeight: 700, color: sc.score >= 8 ? "#2E7D32" : sc.score >= 5 ? "#E8590C" : "#c00" }}>{sc.score}</span>
+                : <span style={{ fontSize: 14, color: "#ccc" }}>-</span>
+              }
+              <span style={{ fontSize: 11, color: "#999" }}>/{q.maxScore}</span>
+            </div>
+          </div>
+          {sc && <div style={{ display: "flex", gap: 6, marginBottom: 6, fontSize: 11, flexWrap: "wrap" }}>
+            {sc.is_off_topic && <span style={{ background: "#c00", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>的外れ</span>}
+            {!sc.is_off_topic && bp > 0 && <span style={{ background: "#2E7D32", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>文字量ボーナス +{bp}点</span>}
+            {sc.comment && <span style={{ color: "#666" }}>💬 {sc.comment}</span>}
+          </div>}
+          <div style={S.ab}>{val || "(未記入)"}</div>
+          {val && <div style={{ textAlign: "right", fontSize: 11, color: "#999", marginTop: 4 }}>{cl}文字</div>}
+          {session.modelAnswers?.[q.id] && <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: "#E8590C", fontWeight: 700, marginBottom: 4 }}>模範解答</div>
+            <div style={{ ...S.ab, background: "#FEF3EC", fontSize: 12 }}>{session.modelAnswers[q.id]}</div>
+          </div>}
+        </div>;
+      })}
+    </div>;
   }
 
   return <div style={S.pw} className="fade">
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}><h2 style={{ fontSize: 18, fontWeight: 700, color: "#1A1A2E" }}>管理者画面</h2><div style={{ display: "flex", gap: 6 }}><button style={S.btnSO} onClick={onShowRanking}>🏆 順位</button><button style={S.btnSG} onClick={onBack}>戻る</button></div></div>
-    <div style={{ display: "flex", borderBottom: "2px solid #eee", marginBottom: 16 }}>{[["results", "回答確認"], ["members", "メンバー管理"], ["tests", "テスト管理"]].map(([k, v]) => <div key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "10px 0", textAlign: "center", fontSize: 13, fontWeight: 700, cursor: "pointer", color: tab === k ? "#E8590C" : "#999", borderBottom: tab === k ? "3px solid #E8590C" : "3px solid transparent" }}>{v}</div>)}</div>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1A1A2E" }}>管理者画面</h2>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button style={S.btnSO} onClick={onShowRanking}>🏆 順位</button>
+        <button style={S.btnSG} onClick={onBack}>戻る</button>
+      </div>
+    </div>
+    <div style={{ display: "flex", borderBottom: "2px solid #eee", marginBottom: 16 }}>
+      {[["results", "回答確認"], ["members", "メンバー管理"], ["tests", "テスト管理"]].map(([k, v]) => <div key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "10px 0", textAlign: "center", fontSize: 13, fontWeight: 700, cursor: "pointer", color: tab === k ? "#E8590C" : "#999", borderBottom: tab === k ? "3px solid #E8590C" : "3px solid transparent" }}>{v}</div>)}
+    </div>
 
-    {tab === "results" && <><div style={{ display: "flex", gap: 4, marginBottom: 12, overflowX: "auto" }}>{(cfg.sessions || []).map(s => <button key={s.id} onClick={() => setSelSId(s.id)} style={{ ...S.btnSG, whiteSpace: "nowrap", ...(selSId === s.id ? { background: "#E8590C", color: "#fff" } : {}) }}>{s.date}</button>)}</div><div style={{ ...S.card, display: "flex", justifyContent: "space-around", textAlign: "center", marginBottom: 8 }}><div><div style={{ fontSize: 28, fontWeight: 700, color: "#1A1A2E" }}>{entries.length}</div><div style={S.sub}>提出数</div></div><div><div style={{ fontSize: 28, fontWeight: 700, color: "#E8590C" }}>{(cfg.members || []).length}</div><div style={S.sub}>受験者数</div></div><div><div style={{ fontSize: 28, fontWeight: 700, color: "#2E7D32" }}>{entries.filter(([_, v]) => v[selSId]?.scoring).length}</div><div style={S.sub}>採点済</div></div></div>{entries.length === 0 && <div style={{ ...S.card, textAlign: "center" }}><p style={S.sub}>まだ回答がありません</p></div>}{entries.map(([name, v]) => { const rec = v[selSId]; const sc = rec?.scoring; const tot = sc ? Object.values(sc).reduce((a, v) => a + (v.score || 0), 0) : null; return { name, rec, tot }; }).sort((a, b) => (b.tot || 0) - (a.tot || 0)).map(({ name, rec, tot }, i) => <div key={name} style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }} onClick={() => setDetail(name)}><div><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 18, width: 28 }}>{["🥇", "🥈", "🥉"][i] || ""}</span><div style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E" }}>{name}</div></div><div style={{ fontSize: 11, color: "#999" }}>{new Date(rec.submittedAt).toLocaleString("ja-JP")}</div></div><div style={{ display: "flex", alignItems: "center", gap: 8 }}>{tot !== null ? <span style={{ fontSize: 18, fontWeight: 700, color: "#E8590C" }}>{tot}/{max}</span> : <span style={{ ...S.tagO, fontSize: 11 }}>未採点</span>}<span style={{ fontSize: 18, color: "#ccc" }}>›</span></div></div>)}</>}
+    {tab === "results" && <>
+      <div style={{ display: "flex", gap: 4, marginBottom: 12, overflowX: "auto" }}>
+        {(cfg.sessions || []).map(s => <button key={s.id} onClick={() => setSelSId(s.id)} style={{ ...S.btnSG, whiteSpace: "nowrap", ...(selSId === s.id ? { background: "#E8590C", color: "#fff" } : {}) }}>{s.date}</button>)}
+      </div>
+      <div style={{ ...S.card, display: "flex", justifyContent: "space-around", textAlign: "center", marginBottom: 8 }}>
+        <div><div style={{ fontSize: 28, fontWeight: 700, color: "#1A1A2E" }}>{entries.length}</div><div style={S.sub}>提出数</div></div>
+        <div><div style={{ fontSize: 28, fontWeight: 700, color: "#E8590C" }}>{(cfg.members || []).length}</div><div style={S.sub}>受験者数</div></div>
+        <div><div style={{ fontSize: 28, fontWeight: 700, color: "#2E7D32" }}>{entries.filter(([_, v]) => v[selSId]?.scoring).length}</div><div style={S.sub}>採点済</div></div>
+      </div>
+      {entries.length === 0 && <div style={{ ...S.card, textAlign: "center" }}><p style={S.sub}>まだ回答がありません</p></div>}
+      {entries.map(([name, v]) => {
+        const rec = v[selSId]; const sc = rec?.scoring;
+        const tot = sc ? Object.values(sc).reduce((a, v) => a + (v?.score || 0), 0) : null;
+        return { name, rec, tot };
+      }).sort((a, b) => (b.tot || 0) - (a.tot || 0)).map(({ name, rec, tot }, i) => <div key={name} style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }} onClick={() => setDetail(name)}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 18, width: 28 }}>{["🥇", "🥈", "🥉"][i] || ""}</span>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E" }}>{name}</div>
+          </div>
+          <div style={{ fontSize: 11, color: "#999" }}>{new Date(rec.submittedAt).toLocaleString("ja-JP")}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {tot !== null ? <span style={{ fontSize: 18, fontWeight: 700, color: "#E8590C" }}>{tot}/{max}</span> : <span style={{ ...S.tagO, fontSize: 11 }}>未採点</span>}
+          <span style={{ fontSize: 18, color: "#ccc" }}>›</span>
+        </div>
+      </div>)}
+    </>}
 
-    {tab === "members" && <><div style={S.card}><label style={S.label}>新しい名前を追加</label><div style={{ display: "flex", gap: 8 }}><input value={newName} onChange={e => setNewName(e.target.value)} placeholder="例：山田太郎" style={{ ...S.input, flex: 1 }} onKeyDown={e => e.key === "Enter" && addMember()} /><button style={S.btnSO} onClick={addMember}>追加</button></div></div><div style={{ fontSize: 13, color: "#999", marginBottom: 8 }}>{(cfg.members || []).length}名登録中</div>{(cfg.members || []).map(name => <div key={name} style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px" }}><span style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E" }}>{name}</span><button onClick={() => remMember(name)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button></div>)}</>}
+    {tab === "members" && <>
+      <div style={S.card}>
+        <label style={S.label}>新しい名前を追加</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="例：山田太郎" style={{ ...S.input, flex: 1 }} onKeyDown={e => e.key === "Enter" && addMember()} />
+          <button style={S.btnSO} onClick={addMember}>追加</button>
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color: "#999", marginBottom: 8 }}>{(cfg.members || []).length}名登録中</div>
+      {(cfg.members || []).map(name => <div key={name} style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px" }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E" }}>{name}</span>
+        <button onClick={() => remMember(name)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button>
+      </div>)}
+    </>}
 
-    {tab === "tests" && <><button style={{ ...S.btnO, marginBottom: 16 }} onClick={() => setShowAdd(!showAdd)}>{showAdd ? "▾ 入力フォームを閉じる" : "＋ 新しいテストを作成"}</button>{showAdd && <div style={{ ...S.card, borderLeft: "4px solid #E8590C" }}><label style={S.label}>テストタイトル</label><input value={tf.title} onChange={e => setTf(f => ({ ...f, title: e.target.value }))} placeholder="例：テスト③ 月次決算" style={{ ...S.input, marginBottom: 12 }} /><label style={S.label}>実施日</label><input value={tf.date} onChange={e => setTf(f => ({ ...f, date: e.target.value }))} placeholder="例：2026/4/20" style={{ ...S.input, marginBottom: 12 }} /><div style={{ fontSize: 13, fontWeight: 700, color: "#1A1A2E", margin: "8px 0" }}>問題（{tf.questions.length}問）</div>{tf.questions.map((q, i) => <div key={i} style={{ ...S.card, background: "#F9F7F4", marginBottom: 8 }}><div style={{ fontSize: 12, color: "#E8590C", fontWeight: 700, marginBottom: 8 }}>問{i + 1}</div><input value={q.title} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, title: e.target.value } : qq) }))} placeholder="問いのタイトル" style={{ ...S.input, marginBottom: 8, fontSize: 14 }} /><textarea value={q.question} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, question: e.target.value } : qq) }))} placeholder="問題文" style={{ ...S.ta, minHeight: 60, marginBottom: 8 }} /><textarea value={q.model} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, model: e.target.value } : qq) }))} placeholder="模範解答（採点の基準になります）" style={{ ...S.ta, minHeight: 60, background: "#FEF3EC", marginBottom: 8 }} /><label style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E", marginBottom: 4, display: "block" }}>採点モード</label><select value={q.scoringMode || "理解型（文字量あり）"} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, scoringMode: e.target.value } : qq) }))} style={{ ...S.input, fontSize: 13, marginBottom: 8 }}><option value="暗記型">暗記型（キーワードが合っていれば高得点）</option><option value="理解型（文字量あり）">理解型・文字量あり（趣旨＋文字量で高得点）</option><option value="理解型（文字量なし）">理解型・文字量なし（趣旨が合えば短くてもOK）</option></select>{i > 0 && <button onClick={() => setTf(f => ({ ...f, questions: f.questions.filter((_, j) => j !== i) }))} style={{ background: "none", border: "none", color: "#c00", fontSize: 12, cursor: "pointer", marginTop: 4 }}>この問いを削除</button>}</div>)}<button onClick={() => setTf(f => ({ ...f, questions: [...f.questions, { title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量あり）" }] }))} style={{ ...S.btnG, marginBottom: 12 }}>＋ 問いを追加</button><button onClick={addTest} style={S.btnO}>テストを作成して保存</button></div>}<div style={{ fontSize: 13, color: "#999", marginBottom: 8, marginTop: 8 }}>登録済みテスト {(cfg.sessions || []).length}件</div>{(cfg.sessions || []).map(s => <div key={s.id} style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center" }}><div><div style={{ fontSize: 14, fontWeight: 700, color: "#1A1A2E" }}>{s.title}</div><div style={{ fontSize: 12, color: "#999" }}>{s.date} ｜ {s.questions.length}問 ｜ 満点{s.totalScore}点</div></div>{s.id !== "test_0409" && s.id !== "test_0413" && <button onClick={() => remTest(s.id)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button>}</div>)}</>}
+    {tab === "tests" && <>
+      <button style={{ ...S.btnO, marginBottom: 16 }} onClick={() => setShowAdd(!showAdd)}>{showAdd ? "▾ 入力フォームを閉じる" : "＋ 新しいテストを作成"}</button>
+      {showAdd && <div style={{ ...S.card, borderLeft: "4px solid #E8590C" }}>
+        <label style={S.label}>テストタイトル</label>
+        <input value={tf.title} onChange={e => setTf(f => ({ ...f, title: e.target.value }))} placeholder="例：テスト③ 月次決算" style={{ ...S.input, marginBottom: 12 }} />
+        <label style={S.label}>実施日</label>
+        <input value={tf.date} onChange={e => setTf(f => ({ ...f, date: e.target.value }))} placeholder="例：2026/4/20" style={{ ...S.input, marginBottom: 12 }} />
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1A2E", margin: "8px 0" }}>問題（{tf.questions.length}問）</div>
+        {tf.questions.map((q, i) => <div key={i} style={{ ...S.card, background: "#F9F7F4", marginBottom: 8 }}>
+          <div style={{ fontSize: 12, color: "#E8590C", fontWeight: 700, marginBottom: 8 }}>問{i + 1}</div>
+          <input value={q.title} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, title: e.target.value } : qq) }))} placeholder="問いのタイトル" style={{ ...S.input, marginBottom: 8, fontSize: 14 }} />
+          <textarea value={q.question} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, question: e.target.value } : qq) }))} placeholder="問題文" style={{ ...S.ta, minHeight: 60, marginBottom: 8 }} />
+          <textarea value={q.model} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, model: e.target.value } : qq) }))} placeholder="模範解答（採点の基準になります）" style={{ ...S.ta, minHeight: 60, background: "#FEF3EC", marginBottom: 8 }} />
+          <label style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E", marginBottom: 4, display: "block" }}>採点モード</label>
+          <select value={q.scoringMode || "理解型（文字量あり）"} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, scoringMode: e.target.value } : qq) }))} style={{ ...S.input, fontSize: 13, marginBottom: 8 }}>
+            <option value="暗記型">暗記型（キーワードが合っていれば高得点）</option>
+            <option value="理解型（文字量あり）">理解型・文字量あり（趣旨＋文字量で高得点）</option>
+            <option value="理解型（文字量なし）">理解型・文字量なし（趣旨が合えば短くてもOK）</option>
+          </select>
+          {i > 0 && <button onClick={() => setTf(f => ({ ...f, questions: f.questions.filter((_, j) => j !== i) }))} style={{ background: "none", border: "none", color: "#c00", fontSize: 12, cursor: "pointer", marginTop: 4 }}>この問いを削除</button>}
+        </div>)}
+        <button onClick={() => setTf(f => ({ ...f, questions: [...f.questions, { title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量あり）" }] }))} style={{ ...S.btnG, marginBottom: 12 }}>＋ 問いを追加</button>
+        <button onClick={addTest} style={S.btnO}>テストを作成して保存</button>
+      </div>}
+      <div style={{ fontSize: 13, color: "#999", marginBottom: 8, marginTop: 8 }}>登録済みテスト {(cfg.sessions || []).length}件</div>
+      {(cfg.sessions || []).map(s => <div key={s.id} style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1A2E" }}>{s.title}</div>
+          <div style={{ fontSize: 12, color: "#999" }}>{s.date} ｜ {s.questions.length}問 ｜ 満点{s.totalScore}点</div>
+        </div>
+        {s.id !== "test_0409" && s.id !== "test_0413" && <button onClick={() => remTest(s.id)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button>}
+      </div>)}
+    </>}
   </div>;
 }
 

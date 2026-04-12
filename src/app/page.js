@@ -107,29 +107,31 @@ function initAll() {
 export default function App() {
   const [page, setPage] = useState("login");
   const [prevPage, setPrevPage] = useState("sessions");
-  const goRanking = (from) => { setPrevPage(from); setPage("ranking"); };
   const [user, setUser] = useState("");
   const [data, setData] = useState({});
   const [cfg, setCfg] = useState({ members: [], sessions: [] });
   const [selSession, setSelSession] = useState(null);
+  const [lastRec, setLastRec] = useState(null); // 追加：最新の採点結果を保持
   useEffect(() => { const { data: d, cfg: c } = initAll(); setData(d); setCfg(c); }, []);
   const updateCfg = c => { cfgSave(c); setCfg({ ...c }); };
   const updateData = d => { dbSave(d); setData({ ...d }); };
+  const goRanking = (from) => { setPrevPage(from); setPage("ranking"); };
   return (
     <div style={{ background: "#F5F3EF", minHeight: "100vh" }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}} .fade{animation:fadeIn .2s ease} *{box-sizing:border-box}`}</style>
       {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={() => setPage("admin")} updateCfg={updateCfg} />}
       {page === "sessions" && <SessionList user={user} data={data} cfg={cfg} onSelect={s => { setSelSession(s); setPage("quiz"); }} onBack={() => setPage("login")} onShowRanking={() => goRanking("sessions")} />}
       {page === "quiz" && selSession && <QuizPage user={user} session={selSession} data={data} onDone={async rec => {
-        console.log("提出データ:", rec);
         const d = dbLoad();
         if (!d[user]) d[user] = {};
         d[user][selSession.id] = rec;
-        updateData(d);
+        dbSave(d);
+        setData({ ...d });
+        setLastRec(rec);
         await saveGAS(user, selSession.id, rec.answers, rec.scoring, rec.submittedAt);
         setPage("done");
       }} />}
-      {page === "done" && <DonePage user={user} session={selSession} data={data} onBack={() => setPage("sessions")} />}
+      {page === "done" && selSession && <DonePage user={user} session={selSession} rec={lastRec} onBack={() => { setPage("sessions"); }} />}
       {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => goRanking("admin")} />}
       {page === "ranking" && <RankingPage data={data} cfg={cfg} onBack={() => setPage(prevPage || "sessions")} />}
     </div>
@@ -195,7 +197,7 @@ function SessionList({ user, data, cfg, onSelect, onBack, onShowRanking }) {
       <p style={{ fontSize: 13, color: "#999", marginBottom: 12 }}>受けるテストを選んでください</p>
       {(cfg.sessions || []).map(s => {
         const done = ud[s.id]; const sc = done?.scoring;
-        const tot = sc ? Object.values(sc).reduce((a, v) => a + (v.score || 0), 0) : null;
+        const tot = sc ? Object.values(sc).reduce((a, v) => a + (v?.score || 0), 0) : null;
         const max = s.totalScore || s.questions.length * 10;
         return <div key={s.id} style={S.sc} onClick={() => onSelect(s)}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -233,7 +235,6 @@ function QuizPage({ user, session, data, onDone }) {
     if (session.modelAnswers) {
       setMsg("AIが採点中... しばらくお待ちください");
       sc = await scoreWithAI(session, answers);
-      console.log("採点結果:", sc);
     } else {
       setMsg("提出中...");
     }
@@ -256,15 +257,13 @@ function QuizPage({ user, session, data, onDone }) {
   </div>;
 }
 
-function DonePage({ user, session, data, onBack }) {
-  const rec = data[user]?.[session.id];
+// DonePageはrecを直接受け取る（stateのタイミング問題を回避）
+function DonePage({ user, session, rec, onBack }) {
   if (!rec) return null;
   const scoring = rec.scoring || {};
   const hasScoring = Object.keys(scoring).length > 0;
   const total = hasScoring ? Object.values(scoring).reduce((a, v) => a + (v?.score || 0), 0) : null;
   const max = session.totalScore || session.questions.length * 10;
-  console.log("DonePage rec:", rec);
-  console.log("DonePage scoring:", scoring);
   return <div style={S.pw} className="fade">
     <div style={{ textAlign: "center", marginBottom: 20 }}>
       {total !== null ? <>

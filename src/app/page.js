@@ -95,25 +95,19 @@ function cfgSave(c) { try { localStorage.setItem(SKEY + "_cfg", JSON.stringify(c
 
 function initAll() {
   const d = dbLoad();
-  const cfg = cfgLoad();
-  if (!cfg.members) cfg.members = [...DEFAULT_MEMBERS];
-
+  const savedCfg = cfgLoad();
+  const cfg = {};
+  cfg.members = savedCfg.members || [...DEFAULT_MEMBERS];
   // 常にDEFAULT_SESSIONSをベースにscoringModeを確実に引き継ぐ
   cfg.sessions = DEFAULT_SESSIONS.map(ds => {
-    const existing = (cfg.sessions || []).find(s => s.id === ds.id);
+    const existing = (savedCfg.sessions || []).find(s => s.id === ds.id);
     if (!existing) return { ...ds };
-    return {
-      ...existing,
-      modelAnswers: ds.modelAnswers,
-      questions: ds.questions.map(dq => ({ ...dq, scoringMode: dq.scoringMode }))
-    };
+    return { ...existing, modelAnswers: ds.modelAnswers, questions: ds.questions.map(dq => ({ ...dq, scoringMode: dq.scoringMode })) };
   });
-
-  // カスタムテストを追加（DEFAULT_SESSIONSにないもの）
+  // カスタムテストを追加
   const defaultIds = DEFAULT_SESSIONS.map(s => s.id);
-  const customSessions = (cfgLoad().sessions || []).filter(s => !defaultIds.includes(s.id));
+  const customSessions = (savedCfg.sessions || []).filter(s => !defaultIds.includes(s.id));
   cfg.sessions = [...cfg.sessions, ...customSessions];
-
   let changed = false;
   DEFAULT_MEMBERS.forEach(name => {
     if (!d[name]) d[name] = {};
@@ -134,7 +128,7 @@ export default function App() {
   const [data, setData] = useState({});
   const [cfg, setCfg] = useState({ members: [], sessions: [] });
   const [selSession, setSelSession] = useState(null);
-  const [lastRec, setLastRec] = useState(null);
+  const [doneRec, setDoneRec] = useState(null);
   useEffect(() => { const { data: d, cfg: c } = initAll(); setData(d); setCfg(c); }, []);
   const updateCfg = c => { cfgSave(c); setCfg({ ...c }); };
   const updateData = d => { dbSave(d); setData({ ...d }); };
@@ -150,11 +144,11 @@ export default function App() {
         d[user][selSession.id] = rec;
         dbSave(d);
         setData({ ...d });
-        setLastRec(rec);
+        setDoneRec(rec);
         await saveGAS(user, selSession.id, rec.answers, rec.scoring, rec.submittedAt);
         setPage("done");
       }} />}
-      {page === "done" && selSession && <DonePage user={user} session={selSession} rec={lastRec} onBack={() => setPage("sessions")} />}
+      {page === "done" && selSession && doneRec && <DonePage user={user} session={selSession} rec={doneRec} onBack={() => { setDoneRec(null); setPage("sessions"); }} />}
       {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => goRanking("admin")} />}
       {page === "ranking" && <RankingPage data={data} cfg={cfg} onBack={() => setPage(prevPage || "sessions")} />}
     </div>

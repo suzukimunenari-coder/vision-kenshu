@@ -39,10 +39,10 @@ const DEFAULT_SESSIONS = [{
     {id:"q1_mission",title:"問1：ミッション",question:"ビジョン税理士法人のミッションを答えてください。",maxScore:10,scoringMode:"暗記型"},
     {id:"q2_vision",title:"問2：ビジョン",question:"ビジョン税理士法人のビジョンを答えてください。",maxScore:10,scoringMode:"暗記型"},
     {id:"q3_value",title:"問3：バリュー",question:"ビジョン税理士法人のバリューを答えてください。",maxScore:10,scoringMode:"暗記型"},
-    {id:"q4_shisei",title:"問4：姿勢のルール",question:"姿勢のルールとは何ですか？\n自分の言葉で説明してください。",maxScore:10,scoringMode:"理解型（文字量あり）"},
+    {id:"q4_shisei",title:"問4：姿勢のルール",question:"姿勢のルールとは何ですか？\n自分の言葉で説明してください。",maxScore:10,scoringMode:"理解型（文字量なし）"},
     {id:"q5_shuhari",title:"問5：守破離の「守」",question:"守破離の「守」とは何ですか？\n具体的に説明してください。",maxScore:10,scoringMode:"理解型（文字量なし）"},
     {id:"q6_kikikata",title:"問6：人の話の聴き方",question:"人の話の聴き方を6個書いてください。",maxScore:10,scoringMode:"暗記型"},
-    {id:"q7_shakaijin",title:"問7：社会人と学生の違い",question:"社会人と学生の違いを自分の言葉で説明してください。",maxScore:10,scoringMode:"理解型（文字量あり）"},
+    {id:"q7_shakaijin",title:"問7：社会人と学生の違い",question:"社会人と学生の違いを自分の言葉で説明してください。",maxScore:10,scoringMode:"理解型（文字量なし）"},
   ]
 },{
   id:"test_0413",title:"テスト② 行動指針・良樹細根・成果の三原則",date:"2026/4/13",totalScore:50,
@@ -55,7 +55,7 @@ const DEFAULT_SESSIONS = [{
   },
   questions:[
     {id:"q1_kodo",title:"問1：行動指針12個",question:"行動指針を全て（12個）答えてください。",maxScore:10,scoringMode:"暗記型"},
-    {id:"q2_ryoju",title:"問2：良樹細根とは",question:"「良樹細根」とは何ですか？\n自分の言葉で説明してください。",maxScore:10,scoringMode:"理解型（文字量あり）"},
+    {id:"q2_ryoju",title:"問2：良樹細根とは",question:"「良樹細根」とは何ですか？\n自分の言葉で説明してください。",maxScore:10,scoringMode:"理解型（文字量なし）"},
     {id:"q3_ne",title:"問3：根の部分10個",question:"「良樹細根」図内の「根（環境整備）」の部分を10個答えてください。",maxScore:10,scoringMode:"暗記型"},
     {id:"q4_stage1",title:"問4：第1ステージ",question:"従業員の未来像の第1ステージで意識するべきことは何ですか？",maxScore:10,scoringMode:"理解型（文字量なし）"},
     {id:"q5_seika",title:"問5：成果が出る人の三原則",question:"「成果が出る人の三原則」は何ですか？\n3つ答えてください。",maxScore:10,scoringMode:"暗記型"},
@@ -304,7 +304,6 @@ function DonePage({ user, session, rec, onBack }) {
       const model = session.modelAnswers?.[q.id];
       const sc = scoring[q.id];
       const cl = (val || "").length;
-      const bp = sc && !sc.is_off_topic && q.scoringMode === "理解型（文字量あり）" ? (cl >= 150 ? 3 : cl >= 100 ? 2 : cl >= 50 ? 1 : 0) : 0;
       return <div key={q.id} style={S.card}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E" }}>{q.title}</div>
@@ -318,7 +317,6 @@ function DonePage({ user, session, rec, onBack }) {
         </div>
         {sc && <div style={{ display: "flex", gap: 6, marginBottom: 6, fontSize: 11, flexWrap: "wrap" }}>
           {sc.is_off_topic && <span style={{ background: "#c00", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>的外れ</span>}
-          {!sc.is_off_topic && bp > 0 && <span style={{ background: "#2E7D32", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>文字量ボーナス +{bp}点</span>}
           {sc.comment && <span style={{ color: "#666" }}>💬 {sc.comment}</span>}
         </div>}
         <div style={S.ab}>{val || "(未記入)"}</div>
@@ -393,7 +391,7 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
   const [showAdd, setShowAdd] = useState(false);
   const [gasLoading, setGasLoading] = useState(false);
   const [gasMsg, setGasMsg] = useState("");
-  const [tf, setTf] = useState({ title: "", date: "", questions: [{ title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量あり）" }] });
+  const [tf, setTf] = useState({ title: "", date: "", questions: [{ title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量なし）" }] });
   const session = (cfg.sessions || []).find(s => s.id === selSId);
   const entries = Object.entries(data).filter(([_, v]) => v[selSId]?.submittedAt);
   const max = session?.totalScore || (session?.questions.length || 0) * 10;
@@ -403,10 +401,10 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
   const addTest = () => {
     if (!tf.title || !tf.date || tf.questions.some(q => !q.title || !q.question)) return;
     const id = "test_" + Date.now(); const ma = {};
-    const qs = tf.questions.map((q, i) => { const qid = "q" + i + "_" + id; ma[qid] = q.model; return { id: qid, title: q.title, question: q.question, maxScore: q.maxScore || 10, scoringMode: q.scoringMode || "理解型（文字量あり）" }; });
+    const qs = tf.questions.map((q, i) => { const qid = "q" + i + "_" + id; ma[qid] = q.model; return { id: qid, title: q.title, question: q.question, maxScore: q.maxScore || 10, scoringMode: q.scoringMode || "理解型（文字量なし）" }; });
     const ts = qs.reduce((a, q) => a + (q.maxScore || 10), 0);
     updateCfg({ ...cfg, sessions: [...(cfg.sessions || []), { id, title: tf.title, date: tf.date, totalScore: ts, modelAnswers: ma, questions: qs }] });
-    setTf({ title: "", date: "", questions: [{ title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量あり）" }] });
+    setTf({ title: "", date: "", questions: [{ title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量なし）" }] });
     setShowAdd(false); setSelSId(id);
   };
   const remTest = sid => { const c = { ...cfg, sessions: (cfg.sessions || []).filter(s => s.id !== sid) }; updateCfg(c); if (selSId === sid && c.sessions.length > 0) setSelSId(c.sessions[0].id); };
@@ -461,7 +459,6 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
         const sc = scoring[q.id];
         const val = rec.answers?.[q.id];
         const cl = (val || "").length;
-        const bp = sc && !sc.is_off_topic && q.scoringMode === "理解型（文字量あり）" ? (cl >= 150 ? 3 : cl >= 100 ? 2 : cl >= 50 ? 1 : 0) : 0;
         return <div key={q.id} style={S.card}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E" }}>{q.title}</div>
@@ -475,7 +472,6 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
           </div>
           {sc && <div style={{ display: "flex", gap: 6, marginBottom: 6, fontSize: 11, flexWrap: "wrap" }}>
             {sc.is_off_topic && <span style={{ background: "#c00", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>的外れ</span>}
-            {!sc.is_off_topic && bp > 0 && <span style={{ background: "#2E7D32", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>文字量ボーナス +{bp}点</span>}
             {sc.comment && <span style={{ color: "#666" }}>💬 {sc.comment}</span>}
           </div>}
           <div style={S.ab}>{val || "(未記入)"}</div>
@@ -563,14 +559,14 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
           <textarea value={q.question} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, question: e.target.value } : qq) }))} placeholder="問題文" style={{ ...S.ta, minHeight: 60, marginBottom: 8 }} />
           <textarea value={q.model} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, model: e.target.value } : qq) }))} placeholder="模範解答（採点の基準になります）" style={{ ...S.ta, minHeight: 60, background: "#FEF3EC", marginBottom: 8 }} />
           <label style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E", marginBottom: 4, display: "block" }}>採点モード</label>
-          <select value={q.scoringMode || "理解型（文字量あり）"} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, scoringMode: e.target.value } : qq) }))} style={{ ...S.input, fontSize: 13, marginBottom: 8 }}>
+          <select value={q.scoringMode || "理解型（文字量なし）"} onChange={e => setTf(f => ({ ...f, questions: f.questions.map((qq, j) => j === i ? { ...qq, scoringMode: e.target.value } : qq) }))} style={{ ...S.input, fontSize: 13, marginBottom: 8 }}>
             <option value="暗記型">暗記型（キーワードが合っていれば高得点）</option>
             <option value="理解型（文字量あり）">理解型・文字量あり（趣旨＋文字量で高得点）</option>
             <option value="理解型（文字量なし）">理解型・文字量なし（趣旨が合えば短くてもOK）</option>
           </select>
           {i > 0 && <button onClick={() => setTf(f => ({ ...f, questions: f.questions.filter((_, j) => j !== i) }))} style={{ background: "none", border: "none", color: "#c00", fontSize: 12, cursor: "pointer", marginTop: 4 }}>この問いを削除</button>}
         </div>)}
-        <button onClick={() => setTf(f => ({ ...f, questions: [...f.questions, { title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量あり）" }] }))} style={{ ...S.btnG, marginBottom: 12 }}>＋ 問いを追加</button>
+        <button onClick={() => setTf(f => ({ ...f, questions: [...f.questions, { title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量なし）" }] }))} style={{ ...S.btnG, marginBottom: 12 }}>＋ 問いを追加</button>
         <button onClick={addTest} style={S.btnO}>テストを作成して保存</button>
       </div>}
       <div style={{ fontSize: 13, color: "#999", marginBottom: 8, marginTop: 8 }}>登録済みテスト {(cfg.sessions || []).length}件</div>

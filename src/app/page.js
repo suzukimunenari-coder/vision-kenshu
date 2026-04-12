@@ -308,10 +308,7 @@ function DonePage({ user, session, rec, onBack }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E" }}>{q.title}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {sc != null
-              ? <span style={{ fontSize: 18, fontWeight: 700, color: sc.score >= 8 ? "#2E7D32" : sc.score >= 5 ? "#E8590C" : "#c00" }}>{sc.score}</span>
-              : <span style={{ fontSize: 14, color: "#ccc" }}>-</span>
-            }
+            {sc != null ? <span style={{ fontSize: 18, fontWeight: 700, color: sc.score >= 8 ? "#2E7D32" : sc.score >= 5 ? "#E8590C" : "#c00" }}>{sc.score}</span> : <span style={{ fontSize: 14, color: "#ccc" }}>-</span>}
             <span style={{ fontSize: 12, color: "#999" }}>/ {q.maxScore}</span>
           </div>
         </div>
@@ -395,6 +392,14 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
   const session = (cfg.sessions || []).find(s => s.id === selSId);
   const entries = Object.entries(data).filter(([_, v]) => v[selSId]?.submittedAt);
   const max = session?.totalScore || (session?.questions.length || 0) * 10;
+
+  const scores = {};
+  entries.forEach(([name, v]) => {
+    const sc = v[selSId]?.scoring;
+    if (sc) scores[name] = Object.values(sc).reduce((a, v) => a + (v?.score || 0), 0);
+  });
+  const hensa = calcHensa(scores) || {};
+
   const addMember = () => { if (!newName.trim()) return; updateCfg({ ...cfg, members: [...cfg.members, newName.trim()] }); setNewName(""); };
   const remMember = n => updateCfg({ ...cfg, members: cfg.members.filter(m => m !== n) });
   const delAnswer = (n, sid) => { const d = dbLoad(); if (d[n]) { delete d[n][sid]; if (!Object.keys(d[n]).length) delete d[n]; } updateData(d); setDetail(null); setDelConf(null); };
@@ -454,6 +459,7 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
       {ts !== null && <div style={{ ...S.card, display: "flex", justifyContent: "center", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
         <span style={{ fontSize: 36, fontWeight: 700, color: "#E8590C" }}>{ts}</span>
         <span style={{ fontSize: 16, color: "#999" }}>/ {max} 点</span>
+        {hensa[detail] != null && <span style={{ fontSize: 14, fontWeight: 700, color: "#666", marginLeft: 8 }}>偏差値 {hensa[detail]}</span>}
       </div>}
       {session?.questions.map(q => {
         const sc = scoring[q.id];
@@ -463,10 +469,7 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E" }}>{q.title}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {sc != null
-                ? <span style={{ fontSize: 18, fontWeight: 700, color: sc.score >= 8 ? "#2E7D32" : sc.score >= 5 ? "#E8590C" : "#c00" }}>{sc.score}</span>
-                : <span style={{ fontSize: 14, color: "#ccc" }}>-</span>
-              }
+              {sc != null ? <span style={{ fontSize: 18, fontWeight: 700, color: sc.score >= 8 ? "#2E7D32" : sc.score >= 5 ? "#E8590C" : "#c00" }}>{sc.score}</span> : <span style={{ fontSize: 14, color: "#ccc" }}>-</span>}
               <span style={{ fontSize: 11, color: "#999" }}>/{q.maxScore}</span>
             </div>
           </div>
@@ -524,7 +527,10 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
           <div style={{ fontSize: 11, color: "#999" }}>{new Date(rec.submittedAt).toLocaleString("ja-JP")}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {tot !== null ? <span style={{ fontSize: 18, fontWeight: 700, color: "#E8590C" }}>{tot}/{max}</span> : <span style={{ ...S.tagO, fontSize: 11 }}>未採点</span>}
+          <div style={{ textAlign: "right" }}>
+            {tot !== null ? <span style={{ fontSize: 18, fontWeight: 700, color: "#E8590C" }}>{tot}/{max}</span> : <span style={{ ...S.tagO, fontSize: 11 }}>未採点</span>}
+            {hensa[name] != null && <div style={{ fontSize: 11, fontWeight: 700, color: "#666" }}>偏差値 {hensa[name]}</div>}
+          </div>
           <span style={{ fontSize: 18, color: "#ccc" }}>›</span>
         </div>
       </div>)}

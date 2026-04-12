@@ -22,27 +22,35 @@ export async function POST(request) {
   try {
     const { session, answers } = await request.json();
     const items = session.questions.map((q) => ({
-      id: q.id, title: q.title,
+      id: q.id,
+      title: q.title,
       model: session.modelAnswers?.[q.id] || "",
       answer: answers[q.id] || "",
       len: (answers[q.id] || "").length,
+      mode: q.scoringMode || "理解型",
     }));
-    const prompt = `あなたは新入社員研修テストの採点者です。以下のルールで採点してください。
 
-【採点方針】
-- 趣旨・意味が合っていれば表現や順番が違っても高得点を与える
-- 模範解答と完全一致でなくても、内容を理解していれば9〜10点
-- 理解が不十分・説明が薄い場合は7〜8点
-- 一部しか合っていない場合は4〜6点
-- 的外れ・まったく理解できていない場合は0〜3点
-- 文字量ボーナス：50文字以上+1点、100文字以上+2点、150文字以上+3点（最大10点を超えない）
-- 採点は厳しすぎず、理解度を正しく評価することを優先する
+    const prompt = `あなたは新入社員研修テストの採点者です。各問に指定された採点モードで採点してください。
+
+【暗記型の採点基準】
+- 模範解答と内容・キーワードがほぼ一致 → 9〜10点
+- 少し表現や内容がずれている → 7〜8点
+- 部分的にしか合っていない → 4〜6点
+- 的外れ・まったく違う → 0〜3点
+- 文字量ボーナスなし（正確さを重視）
+
+【理解型の採点基準】
+- 趣旨が正しく、150文字以上しっかり書けている → 9〜10点
+- 趣旨は合っているが説明が薄い → 7〜8点
+- 趣旨が少しずれている、または極端に短い → 4〜6点
+- 的外れ・適当・まったく関係ない内容 → 0〜3点
+- 文字量ボーナス：50文字以上+1点、100文字以上+2点、150文字以上+3点（最大10点）
 
 【出力形式】JSONのみ。前後に説明文・コードブロック不要。
 {"scores":[{"id":"問いID","score":9,"comment":"40字以内の具体的なフィードバック","is_off_topic":false}]}
 
 【採点対象】
-${items.map((i) => `【${i.title}】${i.len}文字\n模範解答:${i.model}\n受験者回答:${i.answer || "(未記入)"}`).join("\n\n")}`;
+${items.map((i) => `【${i.title}】採点モード:${i.mode}　${i.len}文字\n模範解答:${i.model}\n受験者回答:${i.answer || "(未記入)"}`).join("\n\n")}`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

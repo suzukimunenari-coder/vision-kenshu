@@ -88,6 +88,15 @@ async function scoreWithAI(session, answers) {
 
 async function saveGAS(u, sid, ans, sc, ts) { try { await fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ userName: u, sessionId: sid, answers: ans, scoring: sc, submittedAt: ts }) }); } catch {} }
 
+async function loadFromGAS() {
+  try {
+    const res = await fetch(GAS_URL + "?action=getAllData");
+    const data = await res.json();
+    if (data.status === "ok" && data.data) return data.data;
+  } catch(e) { console.error("GAS読み込みエラー:", e); }
+  return null;
+}
+
 function dbLoad() { try { return JSON.parse(localStorage.getItem(SKEY) || "{}"); } catch { return {}; } }
 function dbSave(d) { try { localStorage.setItem(SKEY, JSON.stringify(d)); } catch {} }
 function cfgLoad() { try { return JSON.parse(localStorage.getItem(SKEY + "_cfg") || "{}"); } catch { return {}; } }
@@ -98,13 +107,11 @@ function initAll() {
   const savedCfg = cfgLoad();
   const cfg = {};
   cfg.members = savedCfg.members || [...DEFAULT_MEMBERS];
-  // 常にDEFAULT_SESSIONSをベースにscoringModeを確実に引き継ぐ
   cfg.sessions = DEFAULT_SESSIONS.map(ds => {
     const existing = (savedCfg.sessions || []).find(s => s.id === ds.id);
     if (!existing) return { ...ds };
     return { ...existing, modelAnswers: ds.modelAnswers, questions: ds.questions.map(dq => ({ ...dq, scoringMode: dq.scoringMode })) };
   });
-  // カスタムテストを追加
   const defaultIds = DEFAULT_SESSIONS.map(s => s.id);
   const customSessions = (savedCfg.sessions || []).filter(s => !defaultIds.includes(s.id));
   cfg.sessions = [...cfg.sessions, ...customSessions];
@@ -384,6 +391,8 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
   const [delConf, setDelConf] = useState(null);
   const [newName, setNewName] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [gasLoading, setGasLoading] = useState(false);
+  const [gasMsg, setGasMsg] = useState("");
   const [tf, setTf] = useState({ title: "", date: "", questions: [{ title: "", question: "", model: "", maxScore: 10, scoringMode: "理解型（文字量あり）" }] });
   const session = (cfg.sessions || []).find(s => s.id === selSId);
   const entries = Object.entries(data).filter(([_, v]) => v[selSId]?.submittedAt);
@@ -401,6 +410,30 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
     setShowAdd(false); setSelSId(id);
   };
   const remTest = sid => { const c = { ...cfg, sessions: (cfg.sessions || []).filter(s => s.id !== sid) }; updateCfg(c); if (selSId === sid && c.sessions.length > 0) setSelSId(c.sessions[0].id); };
+
+  const syncFromGAS = async () => {
+    setGasLoading(true);
+    setGasMsg("GASからデータを読み込み中...");
+    const gasData = await loadFromGAS();
+    if (gasData) {
+      const local = dbLoad();
+      Object.entries(gasData).forEach(([name, sessions]) => {
+        if (!local[name]) local[name] = {};
+        Object.entries(sessions).forEach(([sid, rec]) => {
+          if (!local[name][sid] || rec.submittedAt > (local[name][sid].submittedAt || "")) {
+            local[name][sid] = rec;
+          }
+        });
+      });
+      dbSave(local);
+      updateData(local);
+      setGasMsg("✅ 読み込み完了！最新データに更新しました");
+    } else {
+      setGasMsg("❌ 読み込み失敗。時間をおいて再試行してください");
+    }
+    setGasLoading(false);
+    setTimeout(() => setGasMsg(""), 4000);
+  };
 
   if (delConf) return <div style={S.cw}><div style={{ ...S.card, maxWidth: 340, width: "100%" }}>
     <p style={{ fontSize: 16, fontWeight: 700, color: "#1A1A2E", marginBottom: 8 }}>回答を削除しますか？</p>
@@ -469,6 +502,10 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
     </div>
 
     {tab === "results" && <>
+      <button style={{ ...S.btnO, marginBottom: 12 }} onClick={syncFromGAS} disabled={gasLoading}>
+        {gasLoading ? "読み込み中..." : "☁️ GASから最新データを読み込む"}
+      </button>
+      {gasMsg && <div style={{ ...S.card, background: gasMsg.startsWith("✅") ? "#E8F5E9" : "#FFEBEE", marginBottom: 8, fontSize: 13, fontWeight: 700, color: gasMsg.startsWith("✅") ? "#2E7D32" : "#c00" }}>{gasMsg}</div>}
       <div style={{ display: "flex", gap: 4, marginBottom: 12, overflowX: "auto" }}>
         {(cfg.sessions || []).map(s => <button key={s.id} onClick={() => setSelSId(s.id)} style={{ ...S.btnSG, whiteSpace: "nowrap", ...(selSId === s.id ? { background: "#E8590C", color: "#fff" } : {}) }}>{s.date}</button>)}
       </div>

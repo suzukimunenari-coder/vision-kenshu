@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxOOhjOqe9GfdX9DfUdcLpBW6apPM7eyrP8_bWXGWUmwkQ6G1fzPWzHmnR6BDwHBNGFSQ/exec";
 const SKEY = "vt_v6";
+const ADMIN_PASSWORD = "9999";
 const DEFAULT_MEMBERS = ["中嶋寛彩","大野裕貴","佐藤北斗","小川泰佑","望月梨花","相澤","小金澤葵","廣瀬紫音","菊川太翼","鈴木翔"];
 
 const SEED_0409 = {
@@ -42,7 +43,7 @@ const DEFAULT_SESSIONS = [{
     {id:"q4_shisei",title:"問4：姿勢のルール",question:"姿勢のルールとは何ですか？\n自分の言葉で説明してください。",maxScore:10,scoringMode:"理解型（文字量なし）"},
     {id:"q5_shuhari",title:"問5：守破離の「守」",question:"守破離の「守」とは何ですか？\n具体的に説明してください。",maxScore:10,scoringMode:"理解型（文字量なし）"},
     {id:"q6_kikikata",title:"問6：人の話の聴き方",question:"人の話の聴き方を6個書いてください。",maxScore:10,scoringMode:"暗記型"},
-    {id:"q7_shakaijin",title:"問7：社会人と学生の違い",question:"社会人と学生の違いを自分の言葉で説明してください。",maxScore:10,scoringMode:"理解型（文字量なし）"},
+    {id:"q7_shakaijin",title:"問7：社会人と学生の違い",question:"社会人と学生の違いを自分の言葉で説明してください。",maxScore:10,scoringMode:"理解型（文字量あり）"},
   ]
 },{
   id:"test_0413",title:"テスト② 行動指針・良樹細根・成果の三原則",date:"2026/4/13",totalScore:50,
@@ -143,7 +144,7 @@ export default function App() {
   return (
     <div style={{ background: "#F5F3EF", minHeight: "100vh" }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}} .fade{animation:fadeIn .2s ease} *{box-sizing:border-box}`}</style>
-      {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={() => setPage("admin")} updateCfg={updateCfg} />}
+      {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={(pw) => { if(pw === ADMIN_PASSWORD){ setPage("admin"); } }} updateCfg={updateCfg} />}
       {page === "sessions" && <SessionList user={user} data={data} cfg={cfg} onSelect={s => { setSelSession(s); setPage("quiz"); }} onBack={() => setPage("login")} onShowRanking={() => goRanking("sessions")} />}
       {page === "quiz" && selSession && <QuizPage user={user} session={selSession} data={data} onDone={async rec => {
         const d = dbLoad();
@@ -166,11 +167,18 @@ function LoginPage({ cfg, onStart, onAdmin, updateCfg }) {
   const [sel, setSel] = useState("");
   const [showInput, setShowInput] = useState(false);
   const [newName, setNewName] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [pw, setPw] = useState("");
+  const [pwErr, setPwErr] = useState(false);
   const addAndStart = () => {
     if (!newName.trim()) return;
     const updated = [...(cfg.members || []), newName.trim()];
     updateCfg({ ...cfg, members: updated });
     onStart(newName.trim());
+  };
+  const handleAdmin = () => {
+    if (pw === ADMIN_PASSWORD) { onAdmin(pw); }
+    else { setPwErr(true); setTimeout(() => setPwErr(false), 2000); }
   };
   return (
     <div style={S.cw}>
@@ -203,7 +211,17 @@ function LoginPage({ cfg, onStart, onAdmin, updateCfg }) {
             <button style={{ ...S.btnG, marginTop: 8 }} onClick={() => { setShowInput(false); setNewName(""); }}>← 選択に戻る</button>
           </div>
         )}
-        <button onClick={onAdmin} style={S.al}>管理者画面</button>
+        {!showPw ? (
+          <button onClick={() => setShowPw(true)} style={S.al}>管理者画面</button>
+        ) : (
+          <div style={{ ...S.card, marginTop: 12 }}>
+            <label style={S.label}>管理者パスワード</label>
+            <input value={pw} onChange={e => setPw(e.target.value)} type="password" placeholder="パスワードを入力" style={{ ...S.input, borderColor: pwErr ? "#c00" : "#ddd" }} onKeyDown={e => e.key === "Enter" && handleAdmin()} />
+            {pwErr && <p style={{ color: "#c00", fontSize: 12, marginTop: 4 }}>パスワードが違います</p>}
+            <button style={{ ...S.btnD, marginTop: 8 }} onClick={handleAdmin}>入る</button>
+            <button style={{ ...S.btnG, marginTop: 8 }} onClick={() => { setShowPw(false); setPw(""); }}>キャンセル</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -304,6 +322,7 @@ function DonePage({ user, session, rec, onBack }) {
       const model = session.modelAnswers?.[q.id];
       const sc = scoring[q.id];
       const cl = (val || "").length;
+      const bp = sc && !sc.is_off_topic && q.scoringMode === "理解型（文字量あり）" ? (cl >= 150 ? 3 : cl >= 100 ? 2 : cl >= 50 ? 1 : 0) : 0;
       return <div key={q.id} style={S.card}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E" }}>{q.title}</div>
@@ -314,6 +333,7 @@ function DonePage({ user, session, rec, onBack }) {
         </div>
         {sc && <div style={{ display: "flex", gap: 6, marginBottom: 6, fontSize: 11, flexWrap: "wrap" }}>
           {sc.is_off_topic && <span style={{ background: "#c00", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>的外れ</span>}
+          {!sc.is_off_topic && bp > 0 && <span style={{ background: "#2E7D32", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>文字量ボーナス +{bp}点</span>}
           {sc.comment && <span style={{ color: "#666" }}>💬 {sc.comment}</span>}
         </div>}
         <div style={S.ab}>{val || "(未記入)"}</div>
@@ -392,14 +412,9 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
   const session = (cfg.sessions || []).find(s => s.id === selSId);
   const entries = Object.entries(data).filter(([_, v]) => v[selSId]?.submittedAt);
   const max = session?.totalScore || (session?.questions.length || 0) * 10;
-
   const scores = {};
-  entries.forEach(([name, v]) => {
-    const sc = v[selSId]?.scoring;
-    if (sc) scores[name] = Object.values(sc).reduce((a, v) => a + (v?.score || 0), 0);
-  });
+  entries.forEach(([name, v]) => { const sc = v[selSId]?.scoring; if (sc) scores[name] = Object.values(sc).reduce((a, v) => a + (v?.score || 0), 0); });
   const hensa = calcHensa(scores) || {};
-
   const addMember = () => { if (!newName.trim()) return; updateCfg({ ...cfg, members: [...cfg.members, newName.trim()] }); setNewName(""); };
   const remMember = n => updateCfg({ ...cfg, members: cfg.members.filter(m => m !== n) });
   const delAnswer = (n, sid) => { const d = dbLoad(); if (d[n]) { delete d[n][sid]; if (!Object.keys(d[n]).length) delete d[n]; } updateData(d); setDetail(null); setDelConf(null); };
@@ -413,29 +428,18 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
     setShowAdd(false); setSelSId(id);
   };
   const remTest = sid => { const c = { ...cfg, sessions: (cfg.sessions || []).filter(s => s.id !== sid) }; updateCfg(c); if (selSId === sid && c.sessions.length > 0) setSelSId(c.sessions[0].id); };
-
   const syncFromGAS = async () => {
-    setGasLoading(true);
-    setGasMsg("GASからデータを読み込み中...");
+    setGasLoading(true); setGasMsg("GASからデータを読み込み中...");
     const gasData = await loadFromGAS();
     if (gasData) {
       const local = dbLoad();
       Object.entries(gasData).forEach(([name, sessions]) => {
         if (!local[name]) local[name] = {};
-        Object.entries(sessions).forEach(([sid, rec]) => {
-          if (!local[name][sid] || rec.submittedAt > (local[name][sid].submittedAt || "")) {
-            local[name][sid] = rec;
-          }
-        });
+        Object.entries(sessions).forEach(([sid, rec]) => { if (!local[name][sid] || rec.submittedAt > (local[name][sid].submittedAt || "")) local[name][sid] = rec; });
       });
-      dbSave(local);
-      updateData(local);
-      setGasMsg("✅ 読み込み完了！最新データに更新しました");
-    } else {
-      setGasMsg("❌ 読み込み失敗。時間をおいて再試行してください");
-    }
-    setGasLoading(false);
-    setTimeout(() => setGasMsg(""), 4000);
+      dbSave(local); updateData(local); setGasMsg("✅ 読み込み完了！最新データに更新しました");
+    } else { setGasMsg("❌ 読み込み失敗。時間をおいて再試行してください"); }
+    setGasLoading(false); setTimeout(() => setGasMsg(""), 4000);
   };
 
   if (delConf) return <div style={S.cw}><div style={{ ...S.card, maxWidth: 340, width: "100%" }}>
@@ -462,9 +466,8 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
         {hensa[detail] != null && <span style={{ fontSize: 14, fontWeight: 700, color: "#666", marginLeft: 8 }}>偏差値 {hensa[detail]}</span>}
       </div>}
       {session?.questions.map(q => {
-        const sc = scoring[q.id];
-        const val = rec.answers?.[q.id];
-        const cl = (val || "").length;
+        const sc = scoring[q.id]; const val = rec.answers?.[q.id]; const cl = (val || "").length;
+        const bp = sc && !sc.is_off_topic && q.scoringMode === "理解型（文字量あり）" ? (cl >= 150 ? 3 : cl >= 100 ? 2 : cl >= 50 ? 1 : 0) : 0;
         return <div key={q.id} style={S.card}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1A2E" }}>{q.title}</div>
@@ -475,6 +478,7 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
           </div>
           {sc && <div style={{ display: "flex", gap: 6, marginBottom: 6, fontSize: 11, flexWrap: "wrap" }}>
             {sc.is_off_topic && <span style={{ background: "#c00", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>的外れ</span>}
+            {!sc.is_off_topic && bp > 0 && <span style={{ background: "#2E7D32", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>文字量ボーナス +{bp}点</span>}
             {sc.comment && <span style={{ color: "#666" }}>💬 {sc.comment}</span>}
           </div>}
           <div style={S.ab}>{val || "(未記入)"}</div>
@@ -499,11 +503,8 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
     <div style={{ display: "flex", borderBottom: "2px solid #eee", marginBottom: 16 }}>
       {[["results", "回答確認"], ["members", "メンバー管理"], ["tests", "テスト管理"]].map(([k, v]) => <div key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "10px 0", textAlign: "center", fontSize: 13, fontWeight: 700, cursor: "pointer", color: tab === k ? "#E8590C" : "#999", borderBottom: tab === k ? "3px solid #E8590C" : "3px solid transparent" }}>{v}</div>)}
     </div>
-
     {tab === "results" && <>
-      <button style={{ ...S.btnO, marginBottom: 12 }} onClick={syncFromGAS} disabled={gasLoading}>
-        {gasLoading ? "読み込み中..." : "☁️ GASから最新データを読み込む"}
-      </button>
+      <button style={{ ...S.btnO, marginBottom: 12 }} onClick={syncFromGAS} disabled={gasLoading}>{gasLoading ? "読み込み中..." : "☁️ GASから最新データを読み込む"}</button>
       {gasMsg && <div style={{ ...S.card, background: gasMsg.startsWith("✅") ? "#E8F5E9" : "#FFEBEE", marginBottom: 8, fontSize: 13, fontWeight: 700, color: gasMsg.startsWith("✅") ? "#2E7D32" : "#c00" }}>{gasMsg}</div>}
       <div style={{ display: "flex", gap: 4, marginBottom: 12, overflowX: "auto" }}>
         {(cfg.sessions || []).map(s => <button key={s.id} onClick={() => setSelSId(s.id)} style={{ ...S.btnSG, whiteSpace: "nowrap", ...(selSId === s.id ? { background: "#E8590C", color: "#fff" } : {}) }}>{s.date}</button>)}
@@ -535,7 +536,6 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
         </div>
       </div>)}
     </>}
-
     {tab === "members" && <>
       <div style={S.card}>
         <label style={S.label}>新しい名前を追加</label>
@@ -550,7 +550,6 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
         <button onClick={() => remMember(name)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button>
       </div>)}
     </>}
-
     {tab === "tests" && <>
       <button style={{ ...S.btnO, marginBottom: 16 }} onClick={() => setShowAdd(!showAdd)}>{showAdd ? "▾ 入力フォームを閉じる" : "＋ 新しいテストを作成"}</button>
       {showAdd && <div style={{ ...S.card, borderLeft: "4px solid #E8590C" }}>

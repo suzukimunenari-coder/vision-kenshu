@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxOOhjOqe9GfdX9DfUdcLpBW6apPM7eyrP8_bWXGWUmwkQ6G1fzPWzHmnR6BDwHBNGFSQ/exec";
 const SKEY = "vt_v6";
+const SKEY_C = "vc_v1";
 const ADMIN_PASSWORD = "9999";
 const DEFAULT_MEMBERS = ["中嶋寛彩","大野裕貴","佐藤北斗","小川泰佑","望月梨花","相澤","小金澤葵","廣瀬紫音","菊川太翼","鈴木翔"];
 
@@ -49,7 +50,7 @@ const DEFAULT_SESSIONS = [{
   id:"test_0413",title:"テスト② 行動指針・良樹細根・成果の三原則",date:"2026/4/13",totalScore:50,
   modelAnswers:{
     q1_kodo:"お客様第一主義、素直と謙虚さ、良樹細根、熱意、人間として何が正しいか、原理・原則を守る、正直な仕事をする、時間を大切にする、成長、プラス発想、毎日0.1％成長する、一人の100歩より百人の1歩",
-    q2_ryoju:"「良樹細根（りょうじゅさいこん）」とは、良い果実（成果）を得るには、見えない根（人間性や基礎）を育てる必要があるという教え。細かく根が張っている木は枝葉もよく茂り立派な木になる。良い成果は日頃の行い・心・基礎など見えない部分から生まれる。経営や教育の場で、目に見える結果よりも地道な努力や基礎固めの重要性を説く際に使われる。",
+    q2_ryoju:"「良樹細根（りょうじゅさいこん）」とは、良い果実（成果）を得るには、見えない根（人間性や基礎）を育てる必要があるという教え。細かく根が張っている木は枝葉もよく茂り立派な木になる。良い成果は日頃の行い・心・基礎など見えない部分から生まれる。",
     q3_ne:"感謝・挨拶・清掃・環境整備・素直・人格・人間力・誠実・誠意・熱意・笑顔・規律・勤勉・親孝行・礼儀・謙虚・報連相・約束を守る・読書・仲間（20個中10個）",
     q4_stage1:"インプット中心・仕事がわかる喜び。勉強の習慣を身につける。会計・税務・労務の知識習得。掃除・挨拶を実践する。",
     q5_seika:"①スピード（即応性）②文字量（熱量と論理）③愚直に実践（試行回数と量）"
@@ -60,6 +61,28 @@ const DEFAULT_SESSIONS = [{
     {id:"q3_ne",title:"問3：根の部分10個",question:"「良樹細根」図内の「根（環境整備）」の部分を10個答えてください。",maxScore:10,scoringMode:"暗記型"},
     {id:"q4_stage1",title:"問4：第1ステージ",question:"従業員の未来像の第1ステージで意識するべきことは何ですか？",maxScore:10,scoringMode:"理解型（文字量なし）"},
     {id:"q5_seika",title:"問5：成果が出る人の三原則",question:"「成果が出る人の三原則」は何ですか？\n3つ答えてください。",maxScore:10,scoringMode:"暗記型"},
+  ]
+}];
+
+const COLLEGE_SESSIONS = [{
+  id:"college_0413",title:"基礎テスト① 月次決算書の基本",date:"2026/4/13",totalScore:70,
+  modelAnswers:{
+    c1_color:"青→当月黒字・累計黒字。黄→当月黒字だが累計赤字、または当月赤字だが累計黒字。ピンク→当月赤字・累計赤字。",
+    c2_pqmqfg:"PQ→売上高（単価×数量）。MQ→粗利益額（売上高－変動費）。F→固定費。G→経常利益（MQ－F）。",
+    c3_soneki:"固定費÷粗利益額",
+    c4_anzen:"G÷MQ。販売数量の減少にどれだけ耐えられるかを示す指標。理想10%・目標5%。",
+    c5_explain:"P（単価）・Q（数量）・V（変動費）・F（固定費）の4つの視点で説明する。感度分析を使い、どの要素が一番利益に影響するかを数字で示しながら、どこに手を打てば利益が出るかをお客様と一緒に考える。",
+    c6_salesdown:"売上三期比較グラフで傾向を確認する。粗利益率・固定費生産性・損益分岐点比率を見て、P（単価）を上げるかQ（数量）を増やすかF（固定費）を下げるかを提案する。",
+    c7_cashflow:"利益は損益計算書上の数字だが、売掛金の増加・借入返済・設備投資などでお金は出ていく。キャッシュフロー計算書で実際のお金の動きを確認し、勘定合って銭足らずの状態を説明する。"
+  },
+  questions:[
+    {id:"c1_color",title:"問1：表紙の色の意味",question:"月次決算書の表紙の色（青・黄・ピンク）それぞれの意味を答えてください。",maxScore:15,scoringMode:"暗記型"},
+    {id:"c2_pqmqfg",title:"問2：PQ・MQ・F・Gの意味",question:"PQ・MQ・F・Gそれぞれの意味を答えてください。",maxScore:20,scoringMode:"暗記型"},
+    {id:"c3_soneki",title:"問3：損益分岐点比率の計算式",question:"損益分岐点比率の計算式を答えてください。",maxScore:10,scoringMode:"暗記型"},
+    {id:"c4_anzen",title:"問4：経営安全率とは",question:"経営安全率とは何ですか？計算式と意味を説明してください。",maxScore:10,scoringMode:"理解型（文字量なし）"},
+    {id:"c5_explain",title:"問5：お客様への説明",question:"月次決算書を使って「どこに手を打てば利益が出るか」をお客様に説明する場合、どのように説明しますか？",maxScore:15,scoringMode:"理解型（文字量あり）"},
+    {id:"c6_salesdown",title:"問6：売上が下がった時",question:"お客様の売上が前年比で下がっていた場合、何を見てどう対応を提案しますか？",maxScore:10,scoringMode:"理解型（文字量あり）"},
+    {id:"c7_cashflow",title:"問7：利益とお金の違い",question:"「利益が出ているのにお金が残らない」という状況をどう説明しますか？",maxScore:10,scoringMode:"理解型（文字量あり）"},
   ]
 }];
 
@@ -98,14 +121,14 @@ async function loadFromGAS() {
   return null;
 }
 
-function dbLoad() { try { return JSON.parse(localStorage.getItem(SKEY) || "{}"); } catch { return {}; } }
-function dbSave(d) { try { localStorage.setItem(SKEY, JSON.stringify(d)); } catch {} }
-function cfgLoad() { try { return JSON.parse(localStorage.getItem(SKEY + "_cfg") || "{}"); } catch { return {}; } }
-function cfgSave(c) { try { localStorage.setItem(SKEY + "_cfg", JSON.stringify(c)); } catch {} }
+function dbLoad(key) { try { return JSON.parse(localStorage.getItem(key || SKEY) || "{}"); } catch { return {}; } }
+function dbSave(d, key) { try { localStorage.setItem(key || SKEY, JSON.stringify(d)); } catch {} }
+function cfgLoad(key) { try { return JSON.parse(localStorage.getItem((key || SKEY) + "_cfg") || "{}"); } catch { return {}; } }
+function cfgSave(c, key) { try { localStorage.setItem((key || SKEY) + "_cfg", JSON.stringify(c)); } catch {} }
 
 function initAll() {
-  const d = dbLoad();
-  const savedCfg = cfgLoad();
+  const d = dbLoad(SKEY);
+  const savedCfg = cfgLoad(SKEY);
   const cfg = {};
   cfg.members = savedCfg.members || [...DEFAULT_MEMBERS];
   cfg.sessions = DEFAULT_SESSIONS.map(ds => {
@@ -124,12 +147,77 @@ function initAll() {
       changed = true;
     }
   });
-  if (changed) dbSave(d);
-  cfgSave(cfg);
+  if (changed) dbSave(d, SKEY);
+  cfgSave(cfg, SKEY);
+  return { data: d, cfg };
+}
+
+function initCollege() {
+  const d = dbLoad(SKEY_C);
+  const savedCfg = cfgLoad(SKEY_C);
+  const cfg = {};
+  cfg.members = savedCfg.members || [];
+  cfg.sessions = COLLEGE_SESSIONS.map(ds => {
+    const existing = (savedCfg.sessions || []).find(s => s.id === ds.id);
+    if (!existing) return { ...ds };
+    return { ...existing, modelAnswers: ds.modelAnswers, questions: ds.questions.map(dq => ({ ...dq, scoringMode: dq.scoringMode })) };
+  });
+  const defaultIds = COLLEGE_SESSIONS.map(s => s.id);
+  const customSessions = (savedCfg.sessions || []).filter(s => !defaultIds.includes(s.id));
+  cfg.sessions = [...cfg.sessions, ...customSessions];
+  cfgSave(cfg, SKEY_C);
   return { data: d, cfg };
 }
 
 export default function App() {
+  const [mode, setMode] = useState("top"); // "top" | "shinjin" | "college"
+  return (
+    <div style={{ background: "#F5F3EF", minHeight: "100vh" }}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}} .fade{animation:fadeIn .2s ease} *{box-sizing:border-box}`}</style>
+      {mode === "top" && <TopPage onSelect={setMode} />}
+      {mode === "shinyin" && <ShinjiApp onBack={() => setMode("top")} />}
+      {mode === "college" && <CollegeApp onBack={() => setMode("top")} />}
+    </div>
+  );
+}
+
+// ===== トップページ =====
+function TopPage({ onSelect }) {
+  return (
+    <div style={S.cw}>
+      <div style={{ width: "100%", maxWidth: 400 }} className="fade">
+        <div style={S.lb}>
+          <div style={S.ls}>ビジョン税理士法人</div>
+          <div style={S.lm}>学習・テストシステム</div>
+          <div style={S.ld}>学びを深め、お客様に価値を届ける</div>
+        </div>
+        <div style={{ ...S.card, cursor: "pointer", borderLeft: "4px solid #E8590C" }} onClick={() => onSelect("shinyin")}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ fontSize: 36 }}>🎓</div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "#1A1A2E" }}>新人研修テスト</div>
+              <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>MVV・姿勢・行動指針・守破離</div>
+            </div>
+          </div>
+          <button style={{ ...S.btnO, marginTop: 12 }}>入る →</button>
+        </div>
+        <div style={{ ...S.card, cursor: "pointer", borderLeft: "4px solid #1A1A2E" }} onClick={() => onSelect("college")}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ fontSize: 36 }}>📊</div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "#1A1A2E" }}>ビジョンカレッジ</div>
+              <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>月次決算書・実践研修テスト</div>
+            </div>
+          </div>
+          <button style={{ ...S.btnD, marginTop: 12 }}>入る →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== 新人研修テスト アプリ =====
+function ShinjiApp({ onBack }) {
   const [page, setPage] = useState("login");
   const [prevPage, setPrevPage] = useState("sessions");
   const [user, setUser] = useState("");
@@ -138,32 +226,53 @@ export default function App() {
   const [selSession, setSelSession] = useState(null);
   const [doneRec, setDoneRec] = useState(null);
   useEffect(() => { const { data: d, cfg: c } = initAll(); setData(d); setCfg(c); }, []);
-  const updateCfg = c => { cfgSave(c); setCfg({ ...c }); };
-  const updateData = d => { dbSave(d); setData({ ...d }); };
+  const updateCfg = c => { cfgSave(c, SKEY); setCfg({ ...c }); };
+  const updateData = d => { dbSave(d, SKEY); setData({ ...d }); };
   const goRanking = (from) => { setPrevPage(from); setPage("ranking"); };
-  return (
-    <div style={{ background: "#F5F3EF", minHeight: "100vh" }}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}} .fade{animation:fadeIn .2s ease} *{box-sizing:border-box}`}</style>
-      {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={(pw) => { if(pw === ADMIN_PASSWORD){ setPage("admin"); } }} updateCfg={updateCfg} />}
-      {page === "sessions" && <SessionList user={user} data={data} cfg={cfg} onSelect={s => { setSelSession(s); setPage("quiz"); }} onBack={() => setPage("login")} onShowRanking={() => goRanking("sessions")} />}
-      {page === "quiz" && selSession && <QuizPage user={user} session={selSession} data={data} onDone={async rec => {
-        const d = dbLoad();
-        if (!d[user]) d[user] = {};
-        d[user][selSession.id] = rec;
-        dbSave(d);
-        setData({ ...d });
-        setDoneRec(rec);
-        await saveGAS(user, selSession.id, rec.answers, rec.scoring, rec.submittedAt);
-        setPage("done");
-      }} />}
-      {page === "done" && selSession && doneRec && <DonePage user={user} session={selSession} rec={doneRec} onBack={() => { setDoneRec(null); setPage("sessions"); }} />}
-      {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => goRanking("admin")} />}
-      {page === "ranking" && <RankingPage data={data} cfg={cfg} onBack={() => setPage(prevPage || "sessions")} />}
-    </div>
-  );
+
+  return <>
+    {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={(pw) => { if(pw === ADMIN_PASSWORD) setPage("admin"); }} updateCfg={updateCfg} onBack={onBack} appName="新人研修テスト" appSub="MVV・姿勢・行動指針" />}
+    {page === "sessions" && <SessionList user={user} data={data} cfg={cfg} onSelect={s => { setSelSession(s); setPage("quiz"); }} onBack={() => setPage("login")} onShowRanking={() => goRanking("sessions")} />}
+    {page === "quiz" && selSession && <QuizPage user={user} session={selSession} data={data} onDone={async rec => {
+      const d = dbLoad(SKEY); if (!d[user]) d[user] = {}; d[user][selSession.id] = rec;
+      dbSave(d, SKEY); setData({ ...d }); setDoneRec(rec);
+      await saveGAS(user, selSession.id, rec.answers, rec.scoring, rec.submittedAt); setPage("done");
+    }} />}
+    {page === "done" && selSession && doneRec && <DonePage user={user} session={selSession} rec={doneRec} onBack={() => { setDoneRec(null); setPage("sessions"); }} />}
+    {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => goRanking("admin")} skey={SKEY} />}
+    {page === "ranking" && <RankingPage data={data} cfg={cfg} onBack={() => setPage(prevPage || "sessions")} />}
+  </>;
 }
 
-function LoginPage({ cfg, onStart, onAdmin, updateCfg }) {
+// ===== ビジョンカレッジ アプリ =====
+function CollegeApp({ onBack }) {
+  const [page, setPage] = useState("login");
+  const [prevPage, setPrevPage] = useState("sessions");
+  const [user, setUser] = useState("");
+  const [data, setData] = useState({});
+  const [cfg, setCfg] = useState({ members: [], sessions: [] });
+  const [selSession, setSelSession] = useState(null);
+  const [doneRec, setDoneRec] = useState(null);
+  useEffect(() => { const { data: d, cfg: c } = initCollege(); setData(d); setCfg(c); }, []);
+  const updateCfg = c => { cfgSave(c, SKEY_C); setCfg({ ...c }); };
+  const updateData = d => { dbSave(d, SKEY_C); setData({ ...d }); };
+  const goRanking = (from) => { setPrevPage(from); setPage("ranking"); };
+
+  return <>
+    {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={(pw) => { if(pw === ADMIN_PASSWORD) setPage("admin"); }} updateCfg={updateCfg} onBack={onBack} appName="ビジョンカレッジ" appSub="月次決算書・実践研修" allowNewName={true} />}
+    {page === "sessions" && <SessionList user={user} data={data} cfg={cfg} onSelect={s => { setSelSession(s); setPage("quiz"); }} onBack={() => setPage("login")} onShowRanking={() => goRanking("sessions")} />}
+    {page === "quiz" && selSession && <QuizPage user={user} session={selSession} data={data} onDone={async rec => {
+      const d = dbLoad(SKEY_C); if (!d[user]) d[user] = {}; d[user][selSession.id] = rec;
+      dbSave(d, SKEY_C); setData({ ...d }); setDoneRec(rec);
+      await saveGAS(user, selSession.id, rec.answers, rec.scoring, rec.submittedAt); setPage("done");
+    }} />}
+    {page === "done" && selSession && doneRec && <DonePage user={user} session={selSession} rec={doneRec} onBack={() => { setDoneRec(null); setPage("sessions"); }} />}
+    {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => goRanking("admin")} skey={SKEY_C} isCollege={true} />}
+    {page === "ranking" && <RankingPage data={data} cfg={cfg} onBack={() => setPage(prevPage || "sessions")} />}
+  </>;
+}
+
+function LoginPage({ cfg, onStart, onAdmin, updateCfg, onBack, appName, appSub, allowNewName }) {
   const [sel, setSel] = useState("");
   const [showInput, setShowInput] = useState(false);
   const [newName, setNewName] = useState("");
@@ -185,8 +294,8 @@ function LoginPage({ cfg, onStart, onAdmin, updateCfg }) {
       <div style={{ width: "100%", maxWidth: 400 }} className="fade">
         <div style={S.lb}>
           <div style={S.ls}>ビジョン税理士法人</div>
-          <div style={S.lm}>入社時研修テスト</div>
-          <div style={S.ld}>回答・採点・ランキング</div>
+          <div style={S.lm}>{appName || "研修テスト"}</div>
+          <div style={S.ld}>{appSub || ""}</div>
         </div>
         {!showInput ? (
           <div style={S.card}>
@@ -222,6 +331,7 @@ function LoginPage({ cfg, onStart, onAdmin, updateCfg }) {
             <button style={{ ...S.btnG, marginTop: 8 }} onClick={() => { setShowPw(false); setPw(""); }}>キャンセル</button>
           </div>
         )}
+        {onBack && <button onClick={onBack} style={{ ...S.al, color: "#E8590C" }}>← トップに戻る</button>}
       </div>
     </div>
   );
@@ -232,7 +342,7 @@ function SessionList({ user, data, cfg, onSelect, onBack, onShowRanking }) {
   return (
     <div style={S.pw} className="fade">
       <div style={S.hdr}>
-        <div><div style={S.hs}>入社時研修テスト</div><div style={{ fontSize: 16, fontWeight: 700 }}>{user} さん</div></div>
+        <div><div style={S.hs}>テスト一覧</div><div style={{ fontSize: 16, fontWeight: 700 }}>{user} さん</div></div>
         <button style={S.btnSG} onClick={onBack}>ログアウト</button>
       </div>
       <button style={{ ...S.btnO, marginBottom: 16 }} onClick={onShowRanking}>🏆 みんなの順位・点数を見る</button>
@@ -277,9 +387,7 @@ function QuizPage({ user, session, data, onDone }) {
     if (session.modelAnswers) {
       setMsg("AIが採点中... しばらくお待ちください");
       sc = await scoreWithAI(session, answers);
-    } else {
-      setMsg("提出中...");
-    }
+    } else { setMsg("提出中..."); }
     onDone({ answers: { ...answers }, submittedAt: new Date().toISOString(), scoring: sc });
   };
   if (sub) return <div style={{ ...S.cw, flexDirection: "column" }}><div style={S.spin} /><p style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E", marginTop: 16 }}>{msg}</p><p style={{ fontSize: 12, color: "#999", marginTop: 8 }}>10〜20秒かかります</p></div>;
@@ -399,7 +507,7 @@ function RankingPage({ data, cfg, onBack }) {
   </div>;
 }
 
-function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) {
+function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking, skey, isCollege }) {
   const [tab, setTab] = useState("results");
   const [selSId, setSelSId] = useState((cfg.sessions || [])[0]?.id);
   const [detail, setDetail] = useState(null);
@@ -417,7 +525,7 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
   const hensa = calcHensa(scores) || {};
   const addMember = () => { if (!newName.trim()) return; updateCfg({ ...cfg, members: [...cfg.members, newName.trim()] }); setNewName(""); };
   const remMember = n => updateCfg({ ...cfg, members: cfg.members.filter(m => m !== n) });
-  const delAnswer = (n, sid) => { const d = dbLoad(); if (d[n]) { delete d[n][sid]; if (!Object.keys(d[n]).length) delete d[n]; } updateData(d); setDetail(null); setDelConf(null); };
+  const delAnswer = (n, sid) => { const d = dbLoad(skey); if (d[n]) { delete d[n][sid]; if (!Object.keys(d[n]).length) delete d[n]; } updateData(d); setDetail(null); setDelConf(null); };
   const addTest = () => {
     if (!tf.title || !tf.date || tf.questions.some(q => !q.title || !q.question)) return;
     const id = "test_" + Date.now(); const ma = {};
@@ -432,12 +540,12 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
     setGasLoading(true); setGasMsg("GASからデータを読み込み中...");
     const gasData = await loadFromGAS();
     if (gasData) {
-      const local = dbLoad();
+      const local = dbLoad(skey);
       Object.entries(gasData).forEach(([name, sessions]) => {
         if (!local[name]) local[name] = {};
         Object.entries(sessions).forEach(([sid, rec]) => { if (!local[name][sid] || rec.submittedAt > (local[name][sid].submittedAt || "")) local[name][sid] = rec; });
       });
-      dbSave(local); updateData(local); setGasMsg("✅ 読み込み完了！最新データに更新しました");
+      dbSave(local, skey); updateData(local); setGasMsg("✅ 読み込み完了！最新データに更新しました");
     } else { setGasMsg("❌ 読み込み失敗。時間をおいて再試行してください"); }
     setGasLoading(false); setTimeout(() => setGasMsg(""), 4000);
   };
@@ -554,9 +662,9 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
       <button style={{ ...S.btnO, marginBottom: 16 }} onClick={() => setShowAdd(!showAdd)}>{showAdd ? "▾ 入力フォームを閉じる" : "＋ 新しいテストを作成"}</button>
       {showAdd && <div style={{ ...S.card, borderLeft: "4px solid #E8590C" }}>
         <label style={S.label}>テストタイトル</label>
-        <input value={tf.title} onChange={e => setTf(f => ({ ...f, title: e.target.value }))} placeholder="例：テスト③ 月次決算" style={{ ...S.input, marginBottom: 12 }} />
+        <input value={tf.title} onChange={e => setTf(f => ({ ...f, title: e.target.value }))} placeholder="例：復習テスト① 月次決算書" style={{ ...S.input, marginBottom: 12 }} />
         <label style={S.label}>実施日</label>
-        <input value={tf.date} onChange={e => setTf(f => ({ ...f, date: e.target.value }))} placeholder="例：2026/4/20" style={{ ...S.input, marginBottom: 12 }} />
+        <input value={tf.date} onChange={e => setTf(f => ({ ...f, date: e.target.value }))} placeholder="例：2026/5/10" style={{ ...S.input, marginBottom: 12 }} />
         <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1A2E", margin: "8px 0" }}>問題（{tf.questions.length}問）</div>
         {tf.questions.map((q, i) => <div key={i} style={{ ...S.card, background: "#F9F7F4", marginBottom: 8 }}>
           <div style={{ fontSize: 12, color: "#E8590C", fontWeight: 700, marginBottom: 8 }}>問{i + 1}</div>
@@ -580,7 +688,7 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking }) 
           <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1A2E" }}>{s.title}</div>
           <div style={{ fontSize: 12, color: "#999" }}>{s.date} ｜ {s.questions.length}問 ｜ 満点{s.totalScore}点</div>
         </div>
-        {s.id !== "test_0409" && s.id !== "test_0413" && <button onClick={() => remTest(s.id)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button>}
+        {s.id !== "test_0409" && s.id !== "test_0413" && s.id !== "college_0413" && <button onClick={() => remTest(s.id)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button>}
       </div>)}
     </>}
   </div>;
@@ -594,7 +702,7 @@ const S = {
   ls: { fontSize: 11, color: "#E8590C", fontWeight: 700, letterSpacing: 2, marginBottom: 4 },
   lm: { fontSize: 22, fontWeight: 700 },
   ld: { fontSize: 12, color: "#999", marginTop: 8 },
-  al: { display: "block", margin: "20px auto 0", background: "none", border: "none", color: "#999", fontSize: 12, cursor: "pointer", textDecoration: "underline" },
+  al: { display: "block", margin: "12px auto 0", background: "none", border: "none", color: "#999", fontSize: 12, cursor: "pointer", textDecoration: "underline" },
   hdr: { background: "#1A1A2E", color: "#fff", borderRadius: 12, padding: 16, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" },
   hs: { fontSize: 11, color: "#E8590C", fontWeight: 700, marginBottom: 2 },
   card: { background: "#fff", borderRadius: 12, padding: 16, marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" },

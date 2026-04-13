@@ -170,7 +170,7 @@ function initCollege() {
 }
 
 export default function App() {
-  const [mode, setMode] = useState("top"); // "top" | "shinjin" | "college"
+  const [mode, setMode] = useState("top");
   return (
     <div style={{ background: "#F5F3EF", minHeight: "100vh" }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}} .fade{animation:fadeIn .2s ease} *{box-sizing:border-box}`}</style>
@@ -181,7 +181,6 @@ export default function App() {
   );
 }
 
-// ===== トップページ =====
 function TopPage({ onSelect }) {
   return (
     <div style={S.cw}>
@@ -209,14 +208,13 @@ function TopPage({ onSelect }) {
               <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>月次決算書・実践研修テスト</div>
             </div>
           </div>
-          <button style={{ ...S.btnD, marginTop: 12 }}>入る →</button>
+          <button style={{ ...S.btnO, marginTop: 12 }}>入る →</button>
         </div>
       </div>
     </div>
   );
 }
 
-// ===== 新人研修テスト アプリ =====
 function ShinjiApp({ onBack }) {
   const [page, setPage] = useState("login");
   const [prevPage, setPrevPage] = useState("sessions");
@@ -229,7 +227,6 @@ function ShinjiApp({ onBack }) {
   const updateCfg = c => { cfgSave(c, SKEY); setCfg({ ...c }); };
   const updateData = d => { dbSave(d, SKEY); setData({ ...d }); };
   const goRanking = (from) => { setPrevPage(from); setPage("ranking"); };
-
   return <>
     {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={(pw) => { if(pw === ADMIN_PASSWORD) setPage("admin"); }} updateCfg={updateCfg} onBack={onBack} appName="新人研修テスト" appSub="MVV・姿勢・行動指針" />}
     {page === "sessions" && <SessionList user={user} data={data} cfg={cfg} onSelect={s => { setSelSession(s); setPage("quiz"); }} onBack={() => setPage("login")} onShowRanking={() => goRanking("sessions")} />}
@@ -244,7 +241,6 @@ function ShinjiApp({ onBack }) {
   </>;
 }
 
-// ===== ビジョンカレッジ アプリ =====
 function CollegeApp({ onBack }) {
   const [page, setPage] = useState("login");
   const [prevPage, setPrevPage] = useState("sessions");
@@ -257,9 +253,8 @@ function CollegeApp({ onBack }) {
   const updateCfg = c => { cfgSave(c, SKEY_C); setCfg({ ...c }); };
   const updateData = d => { dbSave(d, SKEY_C); setData({ ...d }); };
   const goRanking = (from) => { setPrevPage(from); setPage("ranking"); };
-
   return <>
-    {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={(pw) => { if(pw === ADMIN_PASSWORD) setPage("admin"); }} updateCfg={updateCfg} onBack={onBack} appName="ビジョンカレッジ" appSub="月次決算書・実践研修" allowNewName={true} />}
+    {page === "login" && <LoginPage cfg={cfg} onStart={n => { setUser(n); setPage("sessions"); }} onAdmin={(pw) => { if(pw === ADMIN_PASSWORD) setPage("admin"); }} updateCfg={updateCfg} onBack={onBack} appName="ビジョンカレッジ" appSub="月次決算書・実践研修" />}
     {page === "sessions" && <SessionList user={user} data={data} cfg={cfg} onSelect={s => { setSelSession(s); setPage("quiz"); }} onBack={() => setPage("login")} onShowRanking={() => goRanking("sessions")} />}
     {page === "quiz" && selSession && <QuizPage user={user} session={selSession} data={data} onDone={async rec => {
       const d = dbLoad(SKEY_C); if (!d[user]) d[user] = {}; d[user][selSession.id] = rec;
@@ -267,12 +262,12 @@ function CollegeApp({ onBack }) {
       await saveGAS(user, selSession.id, rec.answers, rec.scoring, rec.submittedAt); setPage("done");
     }} />}
     {page === "done" && selSession && doneRec && <DonePage user={user} session={selSession} rec={doneRec} onBack={() => { setDoneRec(null); setPage("sessions"); }} />}
-    {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => goRanking("admin")} skey={SKEY_C} isCollege={true} />}
+    {page === "admin" && <AdminPage data={data} cfg={cfg} onBack={() => setPage("login")} updateData={updateData} updateCfg={updateCfg} onShowRanking={() => goRanking("admin")} skey={SKEY_C} />}
     {page === "ranking" && <RankingPage data={data} cfg={cfg} onBack={() => setPage(prevPage || "sessions")} />}
   </>;
 }
 
-function LoginPage({ cfg, onStart, onAdmin, updateCfg, onBack, appName, appSub, allowNewName }) {
+function LoginPage({ cfg, onStart, onAdmin, updateCfg, onBack, appName, appSub }) {
   const [sel, setSel] = useState("");
   const [showInput, setShowInput] = useState(false);
   const [newName, setNewName] = useState("");
@@ -331,7 +326,7 @@ function LoginPage({ cfg, onStart, onAdmin, updateCfg, onBack, appName, appSub, 
             <button style={{ ...S.btnG, marginTop: 8 }} onClick={() => { setShowPw(false); setPw(""); }}>キャンセル</button>
           </div>
         )}
-        {onBack && <button onClick={onBack} style={{ ...S.al, color: "#E8590C" }}>← トップに戻る</button>}
+        {onBack && <button onClick={onBack} style={{ display: "block", width: "100%", padding: 12, background: "#E8590C", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#fff", cursor: "pointer", marginTop: 16 }}>← トップに戻る</button>}
       </div>
     </div>
   );
@@ -507,7 +502,7 @@ function RankingPage({ data, cfg, onBack }) {
   </div>;
 }
 
-function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking, skey, isCollege }) {
+function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking, skey }) {
   const [tab, setTab] = useState("results");
   const [selSId, setSelSId] = useState((cfg.sessions || [])[0]?.id);
   const [detail, setDetail] = useState(null);

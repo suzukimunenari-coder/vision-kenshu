@@ -148,7 +148,7 @@ function initAll() {
   cfg.sessions = DEFAULT_SESSIONS.map(ds => {
     const existing = (savedCfg.sessions || []).find(s => s.id === ds.id);
     if (!existing) return { ...ds };
-    return { ...existing,totalScore: ds.totalScore, modelAnswers: ds.modelAnswers, questions: ds.questions.map(dq => ({ ...dq, scoringMode: dq.scoringMode })) };
+    return { ...existing, totalScore: ds.totalScore, modelAnswers: ds.modelAnswers, questions: ds.questions.map(dq => ({ ...dq, scoringMode: dq.scoringMode })) };
   });
   const defaultIds = DEFAULT_SESSIONS.map(s => s.id);
   const customSessions = (savedCfg.sessions || []).filter(s => !defaultIds.includes(s.id));
@@ -174,7 +174,7 @@ function initCollege() {
   cfg.sessions = COLLEGE_SESSIONS.map(ds => {
     const existing = (savedCfg.sessions || []).find(s => s.id === ds.id);
     if (!existing) return { ...ds };
-    return { ...existing, modelAnswers: ds.modelAnswers, questions: ds.questions.map(dq => ({ ...dq, scoringMode: dq.scoringMode })) };
+    return { ...existing, totalScore: ds.totalScore, modelAnswers: ds.modelAnswers, questions: ds.questions.map(dq => ({ ...dq, scoringMode: dq.scoringMode })) };
   });
   const defaultIds = COLLEGE_SESSIONS.map(s => s.id);
   const customSessions = (savedCfg.sessions || []).filter(s => !defaultIds.includes(s.id));
@@ -382,9 +382,7 @@ function QuizPage({ user, session, data, onDone }) {
   const [answers, setAnswers] = useState(() => {
     if (ex?.answers) return { ...ex.answers };
     const i = {};
-    session.questions.forEach(q => {
-      i[q.id] = q.defaultAnswer || "";
-    });
+    session.questions.forEach(q => { i[q.id] = q.defaultAnswer || ""; });
     return i;
   });
   const [cur, setCur] = useState(0);

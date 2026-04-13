@@ -62,6 +62,26 @@ const DEFAULT_SESSIONS = [{
     {id:"q4_stage1",title:"問4：第1ステージ",question:"従業員の未来像の第1ステージで意識するべきことは何ですか？",maxScore:10,scoringMode:"理解型（文字量なし）"},
     {id:"q5_seika",title:"問5：成果が出る人の三原則",question:"「成果が出る人の三原則」は何ですか？\n3つ答えてください。",maxScore:10,scoringMode:"暗記型"},
   ]
+},{
+  id:"test_0415",title:"テスト③ 経営理念・お客様方針・未来会計図",date:"2026/4/15",totalScore:70,
+  modelAnswers:{
+    t3_q1_kimochi:"Aさんはお客様の会社が良くなることを考えながらワクワクして仕事をしている。Bさんは給料をもらうために仕方なく仕事をしており、お客様のことをまったく考えていない。同じ作業でも「誰のためにやるか」という気持ちの違いで、仕事への姿勢がまったく変わる。",
+    t3_q2_hayasa:"「速さ」は仕事をこなすスピード。「早さ」は仕事に取りかかるタイミングの早さ。たとえばお客様から資料が届いたその日に着手すれば、余裕をもって納期を完了できる。着手が遅れると直前にバタバタしてミスが起きやすくなり、お客様の信頼を失う。",
+    t3_q3_omoimasu:"専門家に「思います」と言われたお客様は自分でまた調べなければならず、専門家に頼む意味がなくなる。また間違った情報をお客様が信じてしまうリスクもある。すぐに答えられない時は「調べて〇時までに回答します」と伝えることが正しい対応。",
+    t3_q4_wasure:"お客様は「言ったことはやってもらえる」という前提で信頼している。やり忘れは「この人には頼めない」という判断につながり、担当変更や解約の原因になる。カレンダーやメモに必ず記録し、絶対に忘れない仕組みを作ることが大切。",
+    t3_q5_kando:"①4.8　②5.0　③1位　④4　⑤1　⑥2　⑦3\n感度比率が最も小さいP（単価）が感度順位1位＝単価を少し上げるだけで利益が最も大きく変わる。",
+    t3_q6_rieki:"①23.0　②2割　③235,674千円　④47,135千円\n計算式：235,674千円×20%＝47,135千円",
+    t3_q7_mirai:"利益とは：社員と家族を守るためのコストであり、会社が存続するための「事業存続費」。\n未来費用とは：広告費・教育費・研究開発費など、将来の成長のために使う費用。今の売上ではなく未来への投資として考える費用のこと。"
+  },
+  questions:[
+    {id:"t3_q1_kimochi",title:"問1：AさんとBさんの違い",question:"AさんとBさんは同じ「領収書の入力」をしています。2人の仕事への気持ちはどう違いますか？",maxScore:10,scoringMode:"理解型（文字量あり）"},
+    {id:"t3_q2_hayasa",title:"問2：速さと早さの違い",question:"方針に「速さ（速度）ではなく早さ（着手の早さ）」とあります。2つの違いを具体例で説明してください。",maxScore:10,scoringMode:"理解型（文字量あり）"},
+    {id:"t3_q3_omoimasu",title:"問3：「〇〇だと思います」がダメな理由",question:"お客様への回答で「〇〇だと思います」という言葉を禁じています。なぜダメなのか。またすぐに答えられない時はどうすればよいか答えてください。",maxScore:10,scoringMode:"理解型（文字量あり）"},
+    {id:"t3_q4_wasure",title:"問4：宿題を忘れることが信頼問題な理由",question:"前回の打ち合わせで頼まれたことを忘れた場合、お客様はどう感じますか？また、どうすれば防げますか？",maxScore:10,scoringMode:"理解型（文字量あり）"},
+    {id:"t3_q5_kando",title:"問5：利益感度分析の穴埋め",question:"下の未来会計図を見て、空欄①〜⑦を埋めてください。\n\nP（単価）感度比率=2.1%、Q（数量）感度比率=①%、V（変動費）感度比率=3.7%、F（固定費）感度比率=②%\nP感度順位=③位、Q=3位、V=2位、F=4位\n易しい順：P=④、Q=⑤、V=⑥、F=⑦",maxScore:10,scoringMode:"暗記型",imageUrl:"/images/02.jpeg"},
+    {id:"t3_q6_rieki",title:"問6：理想の経常利益額",question:"下の未来会計図を見て、空欄を埋めてください。\n\nこの会社の粗利益率は（①）%\n理想の経常利益の基準は粗利益の（②）割\n粗利益額は（③）なので、理想の経常利益額は（④）",maxScore:10,scoringMode:"暗記型",imageUrl:"/images/01.jpeg"},
+    {id:"t3_q7_mirai",title:"問7：利益とは何か・未来費用とは何か",question:"「利益とは何か」と「未来費用とは何か」をそれぞれ説明してください。",maxScore:10,scoringMode:"理解型（文字量あり）"},
+  ]
 }];
 
 const COLLEGE_SESSIONS = [{
@@ -390,6 +410,10 @@ function QuizPage({ user, session, data, onDone }) {
         <span style={S.qt}>問{cur + 1}/{total}</span>
         <span style={{ fontSize: 12, color: "#999" }}>{q.title}</span>
       </div>
+      {q.imageUrl && <div style={{ marginBottom: 12 }}>
+        <img src={q.imageUrl} alt="参考図" style={{ width: "100%", borderRadius: 8, border: "1px solid #eee" }} />
+        <div style={{ fontSize: 11, color: "#999", marginTop: 4, textAlign: "center" }}>↑ 上の図を参考に答えてください</div>
+      </div>}
       <p style={S.qtext}>{q.question}</p>
       <textarea value={answers[q.id] || ""} onChange={e => setAnswers(p => ({ ...p, [q.id]: e.target.value }))} placeholder="" style={S.ta} />
       <div style={{ textAlign: "right", fontSize: 11, color: "#999", marginTop: 4 }}>{cc}文字</div>
@@ -434,6 +458,9 @@ function DonePage({ user, session, rec, onBack }) {
           {sc.is_off_topic && <span style={{ background: "#c00", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>的外れ</span>}
           {!sc.is_off_topic && bp > 0 && <span style={{ background: "#2E7D32", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>文字量ボーナス +{bp}点</span>}
           {sc.comment && <span style={{ color: "#666" }}>💬 {sc.comment}</span>}
+        </div>}
+        {q.imageUrl && <div style={{ marginBottom: 8 }}>
+          <img src={q.imageUrl} alt="参考図" style={{ width: "100%", borderRadius: 8, border: "1px solid #eee" }} />
         </div>}
         <div style={S.ab}>{val || "(未記入)"}</div>
         {val && <div style={{ textAlign: "right", fontSize: 11, color: "#999", marginTop: 4 }}>{cl}文字</div>}
@@ -580,6 +607,9 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking, sk
             {!sc.is_off_topic && bp > 0 && <span style={{ background: "#2E7D32", color: "#fff", padding: "2px 8px", borderRadius: 4 }}>文字量ボーナス +{bp}点</span>}
             {sc.comment && <span style={{ color: "#666" }}>💬 {sc.comment}</span>}
           </div>}
+          {q.imageUrl && <div style={{ marginBottom: 8 }}>
+            <img src={q.imageUrl} alt="参考図" style={{ width: "100%", borderRadius: 8, border: "1px solid #eee" }} />
+          </div>}
           <div style={S.ab}>{val || "(未記入)"}</div>
           {val && <div style={{ textAlign: "right", fontSize: 11, color: "#999", marginTop: 4 }}>{cl}文字</div>}
           {session.modelAnswers?.[q.id] && <div style={{ marginTop: 8 }}>
@@ -653,9 +683,9 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking, sk
       <button style={{ ...S.btnO, marginBottom: 16 }} onClick={() => setShowAdd(!showAdd)}>{showAdd ? "▾ 入力フォームを閉じる" : "＋ 新しいテストを作成"}</button>
       {showAdd && <div style={{ ...S.card, borderLeft: "4px solid #E8590C" }}>
         <label style={S.label}>テストタイトル</label>
-        <input value={tf.title} onChange={e => setTf(f => ({ ...f, title: e.target.value }))} placeholder="例：復習テスト① 月次決算書" style={{ ...S.input, marginBottom: 12 }} />
+        <input value={tf.title} onChange={e => setTf(f => ({ ...f, title: e.target.value }))} placeholder="例：テスト④ クレーム対応" style={{ ...S.input, marginBottom: 12 }} />
         <label style={S.label}>実施日</label>
-        <input value={tf.date} onChange={e => setTf(f => ({ ...f, date: e.target.value }))} placeholder="例：2026/5/10" style={{ ...S.input, marginBottom: 12 }} />
+        <input value={tf.date} onChange={e => setTf(f => ({ ...f, date: e.target.value }))} placeholder="例：2026/4/20" style={{ ...S.input, marginBottom: 12 }} />
         <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1A2E", margin: "8px 0" }}>問題（{tf.questions.length}問）</div>
         {tf.questions.map((q, i) => <div key={i} style={{ ...S.card, background: "#F9F7F4", marginBottom: 8 }}>
           <div style={{ fontSize: 12, color: "#E8590C", fontWeight: 700, marginBottom: 8 }}>問{i + 1}</div>
@@ -679,7 +709,7 @@ function AdminPage({ data, cfg, onBack, updateData, updateCfg, onShowRanking, sk
           <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1A2E" }}>{s.title}</div>
           <div style={{ fontSize: 12, color: "#999" }}>{s.date} ｜ {s.questions.length}問 ｜ 満点{s.totalScore}点</div>
         </div>
-        {s.id !== "test_0409" && s.id !== "test_0413" && s.id !== "college_0413" && <button onClick={() => remTest(s.id)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button>}
+        {s.id !== "test_0409" && s.id !== "test_0413" && s.id !== "test_0415" && s.id !== "college_0413" && <button onClick={() => remTest(s.id)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#c00", cursor: "pointer" }}>削除</button>}
       </div>)}
     </>}
   </div>;
